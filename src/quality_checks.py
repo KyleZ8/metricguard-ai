@@ -46,8 +46,7 @@ from typing import Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-
-DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+from config import DATA_DIR
 
 RESULT_COLUMNS = (
     "check_name",
