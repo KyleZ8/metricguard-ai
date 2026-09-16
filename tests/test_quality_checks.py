@@ -39,6 +39,7 @@ from quality_checks import (  # noqa: E402
     TABLE_SNAPSHOTS,
     TABLE_TRANSACTIONS,
     Thresholds,
+    _is_blank,
     check_accepted_values,
     check_amount_sign_validity,
     check_category_distribution_drift,
@@ -258,6 +259,24 @@ def test_completeness_passes_for_the_other_three_tables():
         row = _row(report, f"required_field_completeness__{table}")
         assert row["status"] == STATUS_PASS, f"{table} unexpectedly incomplete"
         assert row["affected_rows"] == 0
+
+
+def test_is_blank_catches_whitespace_and_empty_strings_on_both_string_dtypes():
+    # pandas 3.x changed pd.api.types.is_string_dtype(): it no longer matches
+    # plain object dtype (only the newer string/StringDtype), so _is_blank
+    # must check both, not just one or the other. A regression here would
+    # silently stop flagging blanks on whichever dtype it drops.
+    expected = [True, True, True, False]
+
+    object_series = pd.Series(["   ", "", None, "ok"], dtype=object)
+    assert _is_blank(object_series).tolist() == expected
+
+    string_series = pd.Series(["   ", "", None, "ok"], dtype="string")
+    assert _is_blank(string_series).tolist() == expected
+
+    # A non-string dtype must never be flagged just because it has a null.
+    numeric_series = pd.Series([1, 2, 3, None])
+    assert _is_blank(numeric_series).tolist() == [False, False, False, True]
 
 
 def test_completeness_treats_a_whitespace_only_string_as_missing():

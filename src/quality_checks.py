@@ -313,13 +313,17 @@ def _severity_for(status: str, failed: str, warned: str = SEVERITY_MEDIUM) -> st
 def _is_blank(series: pd.Series) -> pd.Series:
     """Null, or a string that is empty once stripped.
 
-    Checks ``pd.api.types.is_string_dtype`` rather than ``series.dtype == object``
-    so this also catches blanks in pandas' modern ``str``/``StringDtype`` columns
-    (the default for ``pd.read_csv`` under pandas >= 3.0), not just legacy
-    ``object``-dtype string columns.
+    Checks both legacy ``object`` dtype and pandas' modern ``str``/``StringDtype``
+    columns (the default for ``pd.read_csv`` under pandas >= 3.0). Neither check
+    alone is enough: under pandas 3.x, ``pd.api.types.is_string_dtype()`` no
+    longer matches plain ``object`` dtype (it used to, in pandas 2.x), so
+    checking only that call would silently stop catching blanks in any
+    legacy object-dtype string Series (e.g. one built by hand, or from an
+    older pandas version) even though it still catches the new default
+    string dtype from ``pd.read_csv``.
     """
     blank = series.isna()
-    if pd.api.types.is_string_dtype(series):
+    if series.dtype == object or pd.api.types.is_string_dtype(series):
         blank = blank | series.astype("string").str.strip().eq("").fillna(False)
     return blank
 
