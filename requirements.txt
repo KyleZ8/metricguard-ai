@@ -1,6 +1,12 @@
+# Requires Python >=3.11 (pandas 3.x will not install on older interpreters;
+# `make setup` auto-detects a suitable interpreter or fails with this same
+# message — see .ai/PROJECT_SPEC.md A13). Project standard is Python 3.13,
+# used locally and in CI.
+#
 # Pinned to the versions the full test suite passed against on 2026-09-16
-# (377 passed, 2 failed before the A1 fix; 379 passed after — see .ai/AUDIT.md
-# and .ai/HANDOFF.md CC2 entry). Regenerate with `pip freeze` after any
+# (377 passed, 2 failed before the A1 fix; 379 passed after A1; 369 passed
+# after A9 removed the legacy engine and its tests — see .ai/AUDIT.md and
+# .ai/HANDOFF.md CC2 entries). Regenerate with `pip freeze` after any
 # deliberate upgrade and re-run `make test`.
 
 pandas==3.0.5
