@@ -1,0 +1,33 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Private project working files (owner/mentor only, not part of the public repo)
+.ai/
+CLAUDE.md
+AGENTS.md
+archive/
+
+# Notebook checkpoints / OS cruft
+.ipynb_checkpoints/
+.DS_Store
+
+# Data — raw/processed/full-size generated data is gitignored;
+# small committed samples for demos and CI are allowed via the exceptions below.
+data/processed/
+data/**/*.csv
+data/**/*.parquet
+!data/sample/
+!data/sample/**
+
+# Exception: metric_definitions.csv (< 1 MB) is a small reference file required
+# to run the pipeline (imported by src/metric_engine.py, src/quality_checks.py,
+# src/metricguard_engine.py) — kept tracked even though it lives under data/.
+!data/synthetic/metric_definitions.csv
