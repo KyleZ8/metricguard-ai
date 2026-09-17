@@ -340,6 +340,19 @@ def test_missing_merchant_category_is_kept_as_a_visible_bucket():
     assert missing["previous_purchases"] == 1_384
 
 
+def test_corrected_purchase_facts_labels_blank_segment_values_as_missing():
+    tables = _toy_tables()
+    transactions = tables[TABLE_TRANSACTIONS].copy()
+    target = transactions.index[transactions["merchant_category"].eq("travel")][0]
+    transactions.loc[target, "merchant_category"] = "   "
+    tables[TABLE_TRANSACTIONS] = transactions
+
+    facts = corrected_purchase_facts(tables)
+
+    assert MISSING_LABEL in set(facts["merchant_category"])
+    assert "   " not in set(facts["merchant_category"])
+
+
 def test_driver_table_is_deterministic():
     pd.testing.assert_frame_equal(segment_driver_table(tables=_tables()), _drivers())
 
