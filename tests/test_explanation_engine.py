@@ -28,6 +28,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -272,6 +273,7 @@ def _raises(exception_type, callable_, *args, **kwargs):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_evidence_packet_has_the_documented_top_level_sections():
     facts = _packet().facts
 
@@ -287,6 +289,7 @@ def test_evidence_packet_has_the_documented_top_level_sections():
     }
 
 
+@pytest.mark.slow
 def test_evidence_packet_carries_every_required_metric_field():
     metric = _packet().facts["metric"]
 
@@ -305,6 +308,7 @@ def test_evidence_packet_carries_every_required_metric_field():
         assert metric[key] is not None, key
 
 
+@pytest.mark.slow
 def test_evidence_packet_carries_quality_drivers_and_themes():
     facts = _packet().facts
 
@@ -317,6 +321,7 @@ def test_evidence_packet_carries_quality_drivers_and_themes():
     assert facts["limitations"] == list(STANDING_LIMITATIONS)
 
 
+@pytest.mark.slow
 def test_evidence_packet_matches_the_underlying_reports():
     packet = _packet()
     impact = build_metric_report(_tables()).remediation_impact.iloc[0]
@@ -327,6 +332,7 @@ def test_evidence_packet_matches_the_underlying_reports():
     np.testing.assert_allclose(metric["raw_current_rate"], float(impact["raw_dispute_rate"]), atol=1e-6)
 
 
+@pytest.mark.slow
 def test_evidence_packet_periods_are_the_two_most_recent_months():
     packet = _packet()
 
@@ -335,6 +341,7 @@ def test_evidence_packet_periods_are_the_two_most_recent_months():
     assert packet.metric_name == "dispute_rate"
 
 
+@pytest.mark.slow
 def test_evidence_packet_is_json_serialisable():
     payload = json.loads(_packet().to_json())
 
@@ -342,6 +349,7 @@ def test_evidence_packet_is_json_serialisable():
     assert isinstance(payload["metric"]["raw_current_rate"], float)
 
 
+@pytest.mark.slow
 def test_evidence_packet_whitelists_its_own_numbers():
     packet = _packet()
     metric = packet.facts["metric"]
@@ -353,6 +361,7 @@ def test_evidence_packet_whitelists_its_own_numbers():
     assert packet.supported_numbers.contains(metric["raw_current_rate"] * 100)
 
 
+@pytest.mark.slow
 def test_evidence_packet_can_build_itself_from_tables():
     # Every report omitted, so the packet computes them. Kept small by reusing
     # the already-loaded tables rather than re-reading the CSVs.
@@ -502,6 +511,7 @@ def test_a_small_integer_that_is_real_evidence_is_still_checked():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_deterministic_explanation_has_every_required_field():
     explanation = _explanation()
 
@@ -512,6 +522,7 @@ def test_deterministic_explanation_has_every_required_field():
     assert "validation" in payload
 
 
+@pytest.mark.slow
 def test_deterministic_explanation_needs_no_api_key():
     assert not os.environ.get("OPENAI_API_KEY")
 
@@ -521,6 +532,7 @@ def test_deterministic_explanation_needs_no_api_key():
     assert explanation.executive_summary
 
 
+@pytest.mark.slow
 def test_deterministic_explanation_passes_its_own_number_validation():
     validation = _explanation().validation
 
@@ -528,6 +540,7 @@ def test_deterministic_explanation_passes_its_own_number_validation():
     assert len(validation.supported) > 10
 
 
+@pytest.mark.slow
 def test_explanation_states_the_raw_and_corrected_rates():
     text = _explanation().narrative_text()
     metric = _packet().facts["metric"]
@@ -537,6 +550,7 @@ def test_explanation_states_the_raw_and_corrected_rates():
     assert f"{metric['raw_previous_rate'] * 100:.2f}%" in text
 
 
+@pytest.mark.slow
 def test_explanation_states_the_key_counts():
     text = _explanation().narrative_text()
     metric = _packet().facts["metric"]
@@ -546,6 +560,7 @@ def test_explanation_states_the_key_counts():
     assert f"{metric['duplicate_rows_removed']:,}" in text
 
 
+@pytest.mark.slow
 def test_explanation_reports_the_replay_and_the_corrected_metric():
     explanation = _explanation()
     text = explanation.narrative_text().lower()
@@ -556,6 +571,7 @@ def test_explanation_reports_the_replay_and_the_corrected_metric():
     assert "duplicate" in explanation.headline.lower()
 
 
+@pytest.mark.slow
 def test_explanation_separates_data_quality_from_real_movement():
     text = _explanation().narrative_text().lower()
 
@@ -563,6 +579,7 @@ def test_explanation_separates_data_quality_from_real_movement():
     assert "part of it is real" in text or "remains" in text
 
 
+@pytest.mark.slow
 def test_explanation_names_the_travel_and_mobile_drivers():
     explanation = _explanation()
     drivers = explanation.business_drivers.lower()
@@ -572,6 +589,7 @@ def test_explanation_names_the_travel_and_mobile_drivers():
     assert "merchant_category" in drivers
 
 
+@pytest.mark.slow
 def test_explanation_cites_complaint_themes_with_an_example():
     explanation = _explanation()
     evidence = explanation.customer_text_evidence
@@ -581,6 +599,7 @@ def test_explanation_cites_complaint_themes_with_an_example():
     assert '"' in evidence, "no representative complaint quoted"
 
 
+@pytest.mark.slow
 def test_representative_example_supports_the_lead_theme():
     explanation = _explanation()
     text_facts = _packet().facts["text_themes"]
@@ -595,6 +614,7 @@ def test_representative_example_supports_the_lead_theme():
     assert any(example in explanation.customer_text_evidence for example in matching_examples)
 
 
+@pytest.mark.slow
 def test_explanation_lists_actionable_next_steps():
     steps = _explanation().recommended_next_steps
 
@@ -602,6 +622,7 @@ def test_explanation_lists_actionable_next_steps():
     assert any("dedup" in step.lower() for step in steps)
 
 
+@pytest.mark.slow
 def test_explanation_carries_the_standing_limitations():
     explanation = _explanation()
 
@@ -611,6 +632,7 @@ def test_explanation_carries_the_standing_limitations():
     assert "synthetic" in joined
 
 
+@pytest.mark.slow
 def test_explanation_references_each_contributing_module():
     references = " ".join(_explanation().evidence_references)
 
@@ -618,6 +640,7 @@ def test_explanation_references_each_contributing_module():
         assert module in references, module
 
 
+@pytest.mark.slow
 def test_explanation_renders_as_markdown_with_the_validation_badge():
     markdown = _explanation().to_markdown()
 
@@ -626,6 +649,7 @@ def test_explanation_renders_as_markdown_with_the_validation_badge():
     assert "Number check: pass" in markdown
 
 
+@pytest.mark.slow
 def test_deterministic_explanation_is_reproducible():
     first = build_deterministic_explanation(_packet())
     second = build_deterministic_explanation(_packet())
@@ -633,6 +657,7 @@ def test_deterministic_explanation_is_reproducible():
     assert first.to_dict() == second.to_dict()
 
 
+@pytest.mark.slow
 def test_toy_packet_explanation_uses_only_toy_numbers():
     explanation = build_deterministic_explanation(_toy_packet())
 
@@ -641,6 +666,7 @@ def test_toy_packet_explanation_uses_only_toy_numbers():
     assert "1.50%" in explanation.narrative_text()
 
 
+@pytest.mark.slow
 def test_explanation_handles_a_clean_month_with_no_duplicates():
     packet = _toy_packet()
     packet.facts["metric"]["duplicate_rows_removed"] = 0
@@ -658,6 +684,7 @@ def test_explanation_handles_a_clean_month_with_no_duplicates():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_llm_path_uses_the_injected_client_and_never_the_network():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -668,6 +695,7 @@ def test_llm_path_uses_the_injected_client_and_never_the_network():
     assert explanation.headline == _valid_llm_payload()["headline"]
 
 
+@pytest.mark.slow
 def test_llm_request_carries_the_grounding_instruction_and_the_packet():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -683,6 +711,7 @@ def test_llm_request_carries_the_grounding_instruction_and_the_packet():
     assert "duplicate_rows_removed" in user_message["content"]
 
 
+@pytest.mark.slow
 def test_llm_request_asks_for_low_temperature_and_structured_json():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -704,6 +733,7 @@ def test_llm_json_schema_requires_every_output_field():
     assert EXPLANATION_JSON_SCHEMA["additionalProperties"] is False
 
 
+@pytest.mark.slow
 def test_model_is_configurable_by_environment_variable():
     previous = os.environ.get(DEFAULT_MODEL_ENV_VAR)
     os.environ[DEFAULT_MODEL_ENV_VAR] = "gpt-test-model"
@@ -720,6 +750,7 @@ def test_model_is_configurable_by_environment_variable():
             os.environ[DEFAULT_MODEL_ENV_VAR] = previous
 
 
+@pytest.mark.slow
 def test_an_explicit_model_argument_wins_over_the_environment():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -728,6 +759,7 @@ def test_an_explicit_model_argument_wins_over_the_environment():
     assert client.calls[0]["model"] == "gpt-explicit"
 
 
+@pytest.mark.slow
 def test_a_grounded_model_response_passes_validation():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -736,6 +768,7 @@ def test_a_grounded_model_response_passes_validation():
     assert explanation.validation.is_valid, explanation.validation.notes
 
 
+@pytest.mark.slow
 def test_an_invented_number_from_the_model_is_caught():
     payload = _valid_llm_payload()
     payload["business_drivers"] = "Travel disputes cost the portfolio $4,200,000 last month."
@@ -747,6 +780,7 @@ def test_an_invented_number_from_the_model_is_caught():
     assert any("4,200,000" in token for token in explanation.validation.unsupported)
 
 
+@pytest.mark.slow
 def test_flag_mode_keeps_the_ungrounded_explanation_but_marks_it():
     payload = _valid_llm_payload()
     payload["what_changed"] = "Roughly 7,777 disputes were filed."
@@ -759,6 +793,7 @@ def test_flag_mode_keeps_the_ungrounded_explanation_but_marks_it():
     assert "7,777" in explanation.validation.unsupported
 
 
+@pytest.mark.slow
 def test_fallback_mode_replaces_an_ungrounded_explanation():
     payload = _valid_llm_payload()
     payload["what_changed"] = "Roughly 7,777 disputes were filed."
@@ -770,6 +805,7 @@ def test_fallback_mode_replaces_an_ungrounded_explanation():
     assert explanation.validation.is_valid
 
 
+@pytest.mark.slow
 def test_raise_mode_refuses_an_ungrounded_explanation():
     payload = _valid_llm_payload()
     payload["what_changed"] = "Roughly 7,777 disputes were filed."
@@ -782,6 +818,7 @@ def test_raise_mode_refuses_an_ungrounded_explanation():
     assert "7,777" in str(error)
 
 
+@pytest.mark.slow
 def test_explain_rejects_an_unknown_unsupported_number_policy():
     error = _raises(
         ValueError, explain, _toy_packet(), None, None, False, "ignore-everything"
@@ -790,6 +827,7 @@ def test_explain_rejects_an_unknown_unsupported_number_policy():
     assert "on_unsupported_numbers" in str(error)
 
 
+@pytest.mark.slow
 def test_a_model_response_missing_a_field_is_rejected():
     payload = _valid_llm_payload()
     del payload["business_drivers"]
@@ -800,6 +838,7 @@ def test_a_model_response_missing_a_field_is_rejected():
     assert "business_drivers" in str(error)
 
 
+@pytest.mark.slow
 def test_explain_defaults_to_the_deterministic_path_without_a_key_or_client():
     assert not os.environ.get("OPENAI_API_KEY")
 
@@ -808,6 +847,7 @@ def test_explain_defaults_to_the_deterministic_path_without_a_key_or_client():
     assert explanation.generated_by == GENERATOR_DETERMINISTIC
 
 
+@pytest.mark.slow
 def test_explain_uses_the_llm_when_a_client_is_injected():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -816,6 +856,7 @@ def test_explain_uses_the_llm_when_a_client_is_injected():
     assert explanation.generated_by.startswith("openai:")
 
 
+@pytest.mark.slow
 def test_use_llm_false_ignores_an_injected_client():
     client = FakeOpenAIClient(_valid_llm_payload())
 
@@ -840,6 +881,7 @@ def _csv_fingerprints() -> dict[str, tuple[str, int]]:
     }
 
 
+@pytest.mark.slow
 def test_building_an_explanation_does_not_modify_any_generated_csv():
     before = _csv_fingerprints()
 
@@ -849,6 +891,7 @@ def test_building_an_explanation_does_not_modify_any_generated_csv():
     assert _csv_fingerprints() == before
 
 
+@pytest.mark.slow
 def test_the_explanation_layer_never_writes_to_the_data_directory():
     before = sorted(path.name for path in DATA_DIR.iterdir())
 

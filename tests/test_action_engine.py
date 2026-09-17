@@ -17,6 +17,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +78,7 @@ def _spike_report():
     return build_action_plan(metric, _selected_quality(SPIKE_MONTH, PRIOR_MONTH), driver, themes)
 
 
+@pytest.mark.slow
 def test_action_plan_has_the_documented_frames():
     report = _spike_report()
 
@@ -86,6 +88,7 @@ def test_action_plan_has_the_documented_frames():
     assert report.methodology
 
 
+@pytest.mark.slow
 def test_august_prioritises_duplicate_ingestion_as_p1():
     actions = _spike_report().recommendations
     top = actions.iloc[0]
@@ -97,6 +100,7 @@ def test_august_prioritises_duplicate_ingestion_as_p1():
     assert top["confidence"] == "High"
 
 
+@pytest.mark.slow
 def test_august_still_has_a_business_investigation_after_correction():
     actions = _spike_report().recommendations
 
@@ -107,6 +111,7 @@ def test_august_still_has_a_business_investigation_after_correction():
     assert business.iloc[0]["priority"] in {"P1", "P2"}
 
 
+@pytest.mark.slow
 def test_kpi_anomaly_is_not_mislabelled_as_a_data_quality_fix():
     actions = _spike_report().recommendations
 
@@ -114,6 +119,7 @@ def test_kpi_anomaly_is_not_mislabelled_as_a_data_quality_fix():
     assert not quality_review["recommendation"].str.contains("kpi_anomaly").any()
 
 
+@pytest.mark.slow
 def test_interaction_action_targets_travel_mobile_for_the_spike():
     actions = _spike_report().recommendations
 
@@ -122,6 +128,7 @@ def test_interaction_action_targets_travel_mobile_for_the_spike():
     assert case_review.iloc[0]["target_area"] == "travel x mobile"
 
 
+@pytest.mark.slow
 def test_customer_text_action_uses_the_leading_theme_when_material():
     actions = _spike_report().recommendations
 
@@ -130,6 +137,7 @@ def test_customer_text_action_uses_the_leading_theme_when_material():
     assert customer.iloc[0]["target_area"] == "duplicate_looking_travel_charge"
 
 
+@pytest.mark.slow
 def test_scenario_table_sizes_partial_improvements_from_the_top_action():
     report = _spike_report()
     scenarios = report.scenario_analysis
@@ -140,6 +148,7 @@ def test_scenario_table_sizes_partial_improvements_from_the_top_action():
     assert scenarios["projected_current_value"].is_monotonic_decreasing
 
 
+@pytest.mark.slow
 def test_scorecard_weights_sum_to_one():
     scorecard = _spike_report().scorecard
 
@@ -147,6 +156,7 @@ def test_scorecard_weights_sum_to_one():
     assert scorecard["weighted_score"].between(0, 1).all()
 
 
+@pytest.mark.slow
 def test_calm_month_without_quality_findings_is_monitor_only():
     metric = build_finance_metric_report("dispute_rate", _tables(), "2026-02", "2026-01")
     empty_quality = _quality().iloc[0:0].copy()
@@ -158,6 +168,7 @@ def test_calm_month_without_quality_findings_is_monitor_only():
     assert report.scenario_analysis.empty
 
 
+@pytest.mark.slow
 def test_negative_month_does_not_receive_a_business_spike_action():
     metric = build_finance_metric_report("dispute_rate", _tables(), "2026-07", "2026-06")
     report = build_action_plan(metric, _selected_quality("2026-07", "2026-06"))
@@ -166,6 +177,7 @@ def test_negative_month_does_not_receive_a_business_spike_action():
     assert "spike" in report.decision_summary.lower()
 
 
+@pytest.mark.slow
 def test_non_dispute_kpi_gets_a_generic_action_plan():
     metric = build_finance_metric_report("payment_failure_rate", _tables(), "2026-08", "2026-07")
     report = build_action_plan(metric, _selected_quality("2026-08", "2026-07"))
@@ -180,6 +192,7 @@ def test_non_dispute_kpi_gets_a_generic_action_plan():
     }
 
 
+@pytest.mark.slow
 def test_action_plan_is_deterministic():
     first = _spike_report()
     second = _spike_report()

@@ -22,6 +22,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -99,6 +100,7 @@ def _find(rows: list[dict[str, object]], check_name: str) -> dict[str, object]:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_report_has_the_required_columns_in_order():
     report = _report()
 
@@ -106,6 +108,7 @@ def test_report_has_the_required_columns_in_order():
     assert not report.empty
 
 
+@pytest.mark.slow
 def test_report_uses_only_the_allowed_status_severity_and_type_values():
     report = _report()
 
@@ -114,6 +117,7 @@ def test_report_uses_only_the_allowed_status_severity_and_type_values():
     assert set(report["check_type"]).issubset({"rule_based", "statistical", "governance"})
 
 
+@pytest.mark.slow
 def test_passing_checks_carry_no_severity_and_failing_checks_do():
     report = _report()
 
@@ -123,6 +127,7 @@ def test_passing_checks_carry_no_severity_and_failing_checks_do():
     assert "none" not in set(non_passing["severity"])
 
 
+@pytest.mark.slow
 def test_affected_rows_is_a_non_negative_integer_column():
     report = _report()
 
@@ -130,6 +135,7 @@ def test_affected_rows_is_a_non_negative_integer_column():
     assert (report["affected_rows"] >= 0).all()
 
 
+@pytest.mark.slow
 def test_every_required_check_family_is_present():
     names = set(_report()["check_name"])
 
@@ -173,12 +179,14 @@ def test_every_required_check_family_is_present():
     assert expected.issubset(names), f"missing checks: {sorted(expected - names)}"
 
 
+@pytest.mark.slow
 def test_check_names_are_unique():
     report = _report()
 
     assert report["check_name"].is_unique
 
 
+@pytest.mark.slow
 def test_report_leads_with_failures_then_warnings_then_passes():
     statuses = _report()["status"].tolist()
     rank = {STATUS_FAIL: 0, STATUS_WARN: 1, STATUS_PASS: 2}
@@ -187,6 +195,7 @@ def test_report_leads_with_failures_then_warnings_then_passes():
     assert ranks == sorted(ranks)
 
 
+@pytest.mark.slow
 def test_every_row_explains_itself_and_recommends_an_action():
     report = _report()
 
@@ -197,6 +206,7 @@ def test_every_row_explains_itself_and_recommends_an_action():
     assert (passing["recommended_action"] == "No action required.").all()
 
 
+@pytest.mark.slow
 def test_running_the_checks_twice_gives_an_identical_report():
     first = run_quality_checks(_tables())
     second = run_quality_checks(_tables())
@@ -204,6 +214,7 @@ def test_running_the_checks_twice_gives_an_identical_report():
     pd.testing.assert_frame_equal(first, second)
 
 
+@pytest.mark.slow
 def test_accepts_the_engine_table_key_naming():
     tables = _tables()
     engine_style = {
@@ -222,6 +233,7 @@ def test_accepts_the_engine_table_key_naming():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_duplicate_source_transaction_check_finds_the_planted_replay():
     row = _row(_report(), "duplicate_source_transaction_id")
 
@@ -231,6 +243,7 @@ def test_duplicate_source_transaction_check_finds_the_planted_replay():
     assert row["table_name"] == TABLE_TRANSACTIONS
 
 
+@pytest.mark.slow
 def test_duplicate_source_transaction_check_passes_on_unique_ids():
     clean = _tables()[TABLE_TRANSACTIONS].drop_duplicates("source_transaction_id").head(500)
     row = _only(check_duplicate_source_transaction_ids(clean))
@@ -244,6 +257,7 @@ def test_duplicate_source_transaction_check_passes_on_unique_ids():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_completeness_fails_for_transactions_because_merchant_category_is_missing():
     row = _row(_report(), f"required_field_completeness__{TABLE_TRANSACTIONS}")
 
@@ -252,6 +266,7 @@ def test_completeness_fails_for_transactions_because_merchant_category_is_missin
     assert row["affected_columns"] == "merchant_category"
 
 
+@pytest.mark.slow
 def test_completeness_passes_for_the_other_three_tables():
     report = _report()
 
@@ -279,6 +294,7 @@ def test_is_blank_catches_whitespace_and_empty_strings_on_both_string_dtypes():
     assert _is_blank(numeric_series).tolist() == [False, False, False, True]
 
 
+@pytest.mark.slow
 def test_completeness_treats_a_whitespace_only_string_as_missing():
     tables = dict(_tables())
     complaints = tables[TABLE_COMPLAINTS].head(50).copy()
@@ -293,6 +309,7 @@ def test_completeness_treats_a_whitespace_only_string_as_missing():
     assert row["affected_columns"] == "complaint_narrative"
 
 
+@pytest.mark.slow
 def test_completeness_fails_when_a_required_column_is_absent_entirely():
     tables = dict(_tables())
     tables[TABLE_ACCOUNTS] = tables[TABLE_ACCOUNTS].head(20).drop(columns=["fico_band"])
@@ -310,6 +327,7 @@ def test_completeness_fails_when_a_required_column_is_absent_entirely():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_posted_date_ordering_passes_on_the_synthetic_data():
     row = _row(_report(), "posted_date_not_before_transaction_date")
 
@@ -317,6 +335,7 @@ def test_posted_date_ordering_passes_on_the_synthetic_data():
     assert row["affected_rows"] == 0
 
 
+@pytest.mark.slow
 def test_posted_date_ordering_fails_when_a_transaction_posts_before_it_happens():
     transactions = _tables()[TABLE_TRANSACTIONS].head(100).copy()
     transactions.loc[transactions.index[0], "posted_date"] = transactions.loc[
@@ -330,6 +349,7 @@ def test_posted_date_ordering_fails_when_a_transaction_posts_before_it_happens()
     assert row["severity"] == "high"
 
 
+@pytest.mark.slow
 def test_posted_date_ordering_allows_same_day_posting():
     transactions = _tables()[TABLE_TRANSACTIONS].head(100).copy()
     transactions["posted_date"] = transactions["transaction_date"]
@@ -342,6 +362,7 @@ def test_posted_date_ordering_allows_same_day_posting():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_amount_sign_validity_passes_on_the_synthetic_data():
     row = _row(_report(), "amount_sign_validity")
 
@@ -349,6 +370,7 @@ def test_amount_sign_validity_passes_on_the_synthetic_data():
     assert row["affected_rows"] == 0
 
 
+@pytest.mark.slow
 def test_amount_sign_validity_catches_each_of_the_four_sign_rules():
     transactions = _tables()[TABLE_TRANSACTIONS].head(400).copy()
     cases = {
@@ -374,6 +396,7 @@ def test_amount_sign_validity_catches_each_of_the_four_sign_rules():
         assert f"{rule_name}=1" in row["observed_value"]
 
 
+@pytest.mark.slow
 def test_amount_sign_validity_accepts_a_zero_amount_failed_payment():
     transactions = _tables()[TABLE_TRANSACTIONS].head(200).copy()
     target = transactions.index[0]
@@ -391,6 +414,7 @@ def test_amount_sign_validity_accepts_a_zero_amount_failed_payment():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_all_accepted_value_checks_pass_on_the_synthetic_data():
     report = _report()
     accepted_rows = report[report["check_name"].str.startswith("accepted_values__")]
@@ -399,6 +423,7 @@ def test_all_accepted_value_checks_pass_on_the_synthetic_data():
     assert set(accepted_rows["status"]) == {STATUS_PASS}
 
 
+@pytest.mark.slow
 def test_accepted_values_fails_on_an_unmapped_category():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS].head(200).copy()
@@ -414,6 +439,7 @@ def test_accepted_values_fails_on_an_unmapped_category():
     assert "crypto_atm" in row["observed_value"]
 
 
+@pytest.mark.slow
 def test_accepted_values_ignores_nulls_so_completeness_is_not_double_counted():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS].head(200).copy()
@@ -466,6 +492,7 @@ def test_accepted_values_ignores_blank_strings_so_completeness_is_not_double_cou
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_referential_integrity_passes_for_all_three_child_tables():
     report = _report()
 
@@ -475,6 +502,7 @@ def test_referential_integrity_passes_for_all_three_child_tables():
         assert row["affected_rows"] == 0
 
 
+@pytest.mark.slow
 def test_referential_integrity_fails_on_an_orphan_account_id():
     tables = dict(_tables())
     complaints = tables[TABLE_COMPLAINTS].head(30).copy()
@@ -495,6 +523,7 @@ def test_referential_integrity_fails_on_an_orphan_account_id():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_row_count_anomaly_flags_the_august_complaint_surge():
     row = _row(_report(), f"monthly_row_count_anomaly__{TABLE_COMPLAINTS}")
 
@@ -502,6 +531,7 @@ def test_row_count_anomaly_flags_the_august_complaint_surge():
     assert SPIKE_MONTH in row["observed_value"]
 
 
+@pytest.mark.slow
 def test_row_count_anomaly_passes_for_steady_transaction_and_snapshot_volume():
     report = _report()
 
@@ -510,6 +540,7 @@ def test_row_count_anomaly_passes_for_steady_transaction_and_snapshot_volume():
         assert row["status"] == STATUS_PASS, f"{table} volume unexpectedly flagged"
 
 
+@pytest.mark.slow
 def test_row_count_anomaly_flags_a_duplicated_month_of_transactions():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS]
@@ -531,6 +562,7 @@ def test_row_count_anomaly_flags_a_duplicated_month_of_transactions():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_null_rate_drift_localises_the_missing_category_batch_to_july():
     row = _row(_report(), f"null_rate_drift__{TABLE_TRANSACTIONS}__merchant_category")
 
@@ -539,6 +571,7 @@ def test_null_rate_drift_localises_the_missing_category_batch_to_july():
     assert row["affected_rows"] == EXPECTED_MISSING_MERCHANT_CATEGORY_ROWS
 
 
+@pytest.mark.slow
 def test_null_rate_drift_passes_for_fields_that_are_never_null():
     report = _report()
     drift_rows = report[
@@ -550,6 +583,7 @@ def test_null_rate_drift_passes_for_fields_that_are_never_null():
     assert set(drift_rows["status"]) == {STATUS_PASS}
 
 
+@pytest.mark.slow
 def test_null_rate_drift_ignores_a_movement_below_the_practical_floor():
     # One null in a ~116k-row month is a 0.00001 move: statistically loud against
     # a zero-variance baseline, operationally irrelevant.
@@ -573,6 +607,7 @@ def test_null_rate_drift_ignores_a_movement_below_the_practical_floor():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_category_drift_warns_on_merchant_category_and_blames_the_missing_bucket():
     row = _row(_report(), f"category_distribution_drift__{TABLE_TRANSACTIONS}__merchant_category")
 
@@ -582,12 +617,14 @@ def test_category_drift_warns_on_merchant_category_and_blames_the_missing_bucket
     assert row["affected_rows"] == EXPECTED_MISSING_MERCHANT_CATEGORY_ROWS
 
 
+@pytest.mark.slow
 def test_category_drift_passes_for_a_stable_channel_mix():
     row = _row(_report(), f"category_distribution_drift__{TABLE_TRANSACTIONS}__channel")
 
     assert row["status"] == STATUS_PASS
 
 
+@pytest.mark.slow
 def test_category_drift_fails_when_a_channel_is_remapped_wholesale():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS].copy()
@@ -641,6 +678,7 @@ def test_population_stability_index_handles_a_brand_new_bucket():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_dispute_rate_anomaly_flags_august():
     row = _row(_report(), "kpi_anomaly__dispute_rate")
 
@@ -650,6 +688,7 @@ def test_dispute_rate_anomaly_flags_august():
     assert row["check_type"] == "statistical"
 
 
+@pytest.mark.slow
 def test_dispute_rate_anomaly_reports_the_disputed_purchase_count_for_the_spike_month():
     tables = _tables()
     row = _row(_report(), "kpi_anomaly__dispute_rate")
@@ -662,6 +701,7 @@ def test_dispute_rate_anomaly_reports_the_disputed_purchase_count_for_the_spike_
     assert row["affected_rows"] == expected
 
 
+@pytest.mark.slow
 def test_dispute_rate_anomaly_passes_when_the_spike_month_is_removed():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS]
@@ -673,6 +713,7 @@ def test_dispute_rate_anomaly_passes_when_the_spike_month_is_removed():
     assert row["status"] == STATUS_PASS
 
 
+@pytest.mark.slow
 def test_statistical_checks_need_enough_history_before_they_score_anything():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS]
@@ -690,6 +731,7 @@ def test_statistical_checks_need_enough_history_before_they_score_anything():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_metric_definitions_are_fully_documented():
     row = _row(_report(), "metric_definition_governance_completeness")
 
@@ -698,6 +740,7 @@ def test_metric_definitions_are_fully_documented():
     assert row["affected_rows"] == 0
 
 
+@pytest.mark.slow
 def test_metric_governance_fails_when_a_metric_lacks_known_limitations():
     definitions = _tables()[TABLE_METRIC_DEFINITIONS].copy()
     definitions.loc[definitions.index[0], "known_limitations"] = ""
@@ -710,6 +753,7 @@ def test_metric_governance_fails_when_a_metric_lacks_known_limitations():
     assert str(definitions.loc[definitions.index[0], "metric_name"]) in row["observed_value"]
 
 
+@pytest.mark.slow
 def test_metric_governance_fails_when_an_owner_column_is_absent():
     definitions = _tables()[TABLE_METRIC_DEFINITIONS].drop(columns=["owner"])
 
@@ -747,6 +791,7 @@ def test_floored_zscore_is_zero_when_the_value_equals_a_flat_baseline():
     assert floored_zscore(value=5.0, mean=5.0, std=0.0, min_abs_delta=0.0, fail_z=3.0) == 0.0
 
 
+@pytest.mark.slow
 def test_thresholds_are_configurable_and_change_the_verdict():
     strict = Thresholds(warn_z=1.0, fail_z=1.5, kpi_min_abs_delta=0.0)
     lenient = Thresholds(warn_z=50.0, fail_z=100.0)
@@ -769,6 +814,7 @@ def test_default_thresholds_follow_the_conventional_psi_bands():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_summary_counts_reconcile_with_the_report():
     report = _report()
     summary = summarize_quality_checks(report)
@@ -778,6 +824,7 @@ def test_summary_counts_reconcile_with_the_report():
     assert 0.0 <= summary["pass_rate"] <= 1.0
 
 
+@pytest.mark.slow
 def test_summary_lists_the_failing_and_warning_checks():
     report = _report()
     summary = summarize_quality_checks(report)

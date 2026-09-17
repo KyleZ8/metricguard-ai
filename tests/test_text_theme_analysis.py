@@ -37,6 +37,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -272,6 +273,7 @@ def test_hashing_embedder_rejects_a_non_positive_dimension():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_toy_assignment_matches_the_expected_theme_for_every_complaint():
     facts = _toy_facts()
 
@@ -280,6 +282,7 @@ def test_toy_assignment_matches_the_expected_theme_for_every_complaint():
     assert labelled["theme_name"].astype(str).tolist() == facts["expected_theme"].tolist()
 
 
+@pytest.mark.slow
 def test_toy_assignment_reports_exact_similarity_scores():
     labelled = assign_complaint_themes(_toy_facts(), toy_embedder, taxonomy=TOY_TAXONOMY).facts
     scores = labelled.set_index("complaint_id")["theme_similarity"]
@@ -290,6 +293,7 @@ def test_toy_assignment_reports_exact_similarity_scores():
     np.testing.assert_allclose(scores["C3"], 1.0)
 
 
+@pytest.mark.slow
 def test_blank_narratives_are_labelled_unclear_at_zero_similarity():
     labelled = assign_complaint_themes(_toy_facts(), toy_embedder, taxonomy=TOY_TAXONOMY).facts
     blanks = labelled[labelled["complaint_id"].isin(["C8", "C9"])]
@@ -298,6 +302,7 @@ def test_blank_narratives_are_labelled_unclear_at_zero_similarity():
     assert (blanks["theme_similarity"] == 0.0).all()
 
 
+@pytest.mark.slow
 def test_a_narrative_with_no_signal_is_labelled_unclear():
     # "zzz nothing recognisable here" embeds to a zero vector under the toy
     # backend, so there is nothing to compare against any anchor.
@@ -328,6 +333,7 @@ def test_min_similarity_routes_weak_matches_to_unclear():
     assert str(strict.iloc[0]["theme_name"]) == UNCLEAR_THEME
 
 
+@pytest.mark.slow
 def test_assignment_records_the_backend_that_produced_it():
     assignment = assign_complaint_themes(_toy_facts(), toy_embedder, taxonomy=TOY_TAXONOMY)
 
@@ -335,6 +341,7 @@ def test_assignment_records_the_backend_that_produced_it():
     assert set(assignment.facts["embedding_backend"]) == {"toy"}
 
 
+@pytest.mark.slow
 def test_assignment_returns_one_embedding_row_per_complaint():
     facts = _toy_facts()
 
@@ -343,6 +350,7 @@ def test_assignment_returns_one_embedding_row_per_complaint():
     assert assignment.embeddings.shape[0] == len(facts)
 
 
+@pytest.mark.slow
 def test_assignment_rejects_an_embedder_returning_the_wrong_row_count():
     def broken(texts):
         return np.ones((len(texts) - 1, 3))
@@ -354,6 +362,7 @@ def test_assignment_rejects_an_embedder_returning_the_wrong_row_count():
     assert "vectors" in str(error)
 
 
+@pytest.mark.slow
 def test_assignment_rejects_an_empty_taxonomy():
     error = _raises(ValueError, assign_complaint_themes, _toy_facts(), toy_embedder, {})
 
@@ -382,6 +391,7 @@ def test_every_taxonomy_theme_is_reachable_from_its_own_anchor():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_complaint_fact_table_has_the_required_fields():
     facts = _facts()
 
@@ -399,6 +409,7 @@ def test_complaint_fact_table_has_the_required_fields():
     assert len(facts) == 5_300
 
 
+@pytest.mark.slow
 def test_complaint_fact_table_joins_account_segments():
     facts = _facts()
 
@@ -439,6 +450,7 @@ def test_complaint_fact_table_labels_blank_segment_values_as_missing():
     assert facts.loc[0, "channel"] == "__missing__"
 
 
+@pytest.mark.slow
 def test_complaint_months_are_well_formed():
     months = _facts()["month"]
 
@@ -446,6 +458,7 @@ def test_complaint_months_are_well_formed():
     assert months.nunique() == 8
 
 
+@pytest.mark.slow
 def test_narratives_are_stripped_and_never_null():
     narratives = _facts()["narrative"]
 
@@ -458,6 +471,7 @@ def test_narratives_are_stripped_and_never_null():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_theme_summary_has_the_documented_schema():
     summary = _summary()
 
@@ -465,6 +479,7 @@ def test_theme_summary_has_the_documented_schema():
     assert set(summary["theme_name"]) == set(THEME_NAMES)
 
 
+@pytest.mark.slow
 def test_theme_summary_counts_reconcile_with_the_labelled_complaints():
     summary = _summary()
     labelled = _assignment().facts
@@ -473,6 +488,7 @@ def test_theme_summary_counts_reconcile_with_the_labelled_complaints():
         assert summary[column].sum() == int(labelled["month"].eq(period).sum())
 
 
+@pytest.mark.slow
 def test_theme_summary_changes_are_consistent_with_their_levels():
     summary = _summary()
 
@@ -485,6 +501,7 @@ def test_theme_summary_changes_are_consistent_with_their_levels():
     )
 
 
+@pytest.mark.slow
 def test_theme_shares_sum_to_one_in_each_period():
     summary = _summary()
 
@@ -492,6 +509,7 @@ def test_theme_shares_sum_to_one_in_each_period():
     np.testing.assert_allclose(summary["current_share"].sum(), 1.0)
 
 
+@pytest.mark.slow
 def test_theme_summary_periods_default_to_the_two_most_recent_months():
     report = build_text_theme_report(
         tables=_tables(), embedder=HashingEmbedder(), include_clusters=False
@@ -501,6 +519,7 @@ def test_theme_summary_periods_default_to_the_two_most_recent_months():
     assert report.previous_period == PRIOR_MONTH
 
 
+@pytest.mark.slow
 def test_theme_summary_accepts_explicit_periods():
     summary = theme_summary_table("2026-03", "2026-01", assignment=_assignment())
 
@@ -508,12 +527,14 @@ def test_theme_summary_accepts_explicit_periods():
     assert summary["previous_complaints"].sum() == 601
 
 
+@pytest.mark.slow
 def test_theme_summary_rejects_an_unknown_period():
     error = _raises(KeyError, theme_summary_table, "2031-01", PRIOR_MONTH, _assignment())
 
     assert "2031-01" in str(error)
 
 
+@pytest.mark.slow
 def test_average_similarity_is_within_the_cosine_range():
     similarities = _summary()["avg_similarity"].dropna()
 
@@ -526,6 +547,7 @@ def test_average_similarity_is_within_the_cosine_range():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_segment_theme_table_has_the_documented_schema():
     segments = _segments()
 
@@ -533,6 +555,7 @@ def test_segment_theme_table_has_the_documented_schema():
     assert set(segments["segment_name"]) == {"merchant_category", "channel"}
 
 
+@pytest.mark.slow
 def test_segment_theme_shares_sum_to_one_within_each_segment_value():
     segments = _segments()
     totals = segments.groupby(["segment_name", "segment_value"])["current_share"].sum()
@@ -541,6 +564,7 @@ def test_segment_theme_shares_sum_to_one_within_each_segment_value():
     np.testing.assert_allclose(populated.to_numpy(dtype=float), np.ones(len(populated)))
 
 
+@pytest.mark.slow
 def test_segment_theme_counts_reconcile_with_the_summary_totals():
     segments = _segments()
     channel_rows = segments[segments["segment_name"].eq("channel")]
@@ -548,6 +572,7 @@ def test_segment_theme_counts_reconcile_with_the_summary_totals():
     assert channel_rows["current_complaints"].sum() == _summary()["current_complaints"].sum()
 
 
+@pytest.mark.slow
 def test_segment_theme_table_can_use_other_segment_fields():
     segments = segment_theme_table(
         segment_fields=("fico_band",), assignment=_assignment()
@@ -562,6 +587,7 @@ def test_segment_theme_table_can_use_other_segment_fields():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_representative_complaints_have_the_documented_schema():
     examples = representative_complaints(_assignment(), top_n=3)
 
@@ -569,6 +595,7 @@ def test_representative_complaints_have_the_documented_schema():
         assert column in examples.columns, column
 
 
+@pytest.mark.slow
 def test_representative_complaints_belong_to_the_theme_they_illustrate():
     examples = representative_complaints(_assignment(), top_n=3)
     labelled = _assignment().facts.set_index("complaint_id")
@@ -578,6 +605,7 @@ def test_representative_complaints_belong_to_the_theme_they_illustrate():
         assert actual == row["theme_name"], f"{row['complaint_id']} is {actual}, not {row['theme_name']}"
 
 
+@pytest.mark.slow
 def test_representative_complaints_are_ranked_by_similarity():
     examples = representative_complaints(_assignment(), top_n=3)
 
@@ -587,18 +615,21 @@ def test_representative_complaints_are_ranked_by_similarity():
         assert group["rank"].tolist() == list(range(1, len(group) + 1))
 
 
+@pytest.mark.slow
 def test_representative_complaints_respect_top_n():
     examples = representative_complaints(_assignment(), top_n=2)
 
     assert (examples.groupby("theme_name").size() <= 2).all()
 
 
+@pytest.mark.slow
 def test_representative_complaints_can_focus_on_one_period():
     examples = representative_complaints(_assignment(), top_n=3, period=SPIKE_MONTH)
 
     assert set(examples["month"]) == {SPIKE_MONTH}
 
 
+@pytest.mark.slow
 def test_representative_complaints_rejects_a_non_positive_top_n():
     error = _raises(ValueError, representative_complaints, _assignment(), 0)
 
@@ -610,6 +641,7 @@ def test_representative_complaints_rejects_a_non_positive_top_n():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_report_exposes_every_dashboard_frame():
     report = build_text_theme_report(
         tables=_tables(), embedder=HashingEmbedder(), include_clusters=False
@@ -625,6 +657,7 @@ def test_report_exposes_every_dashboard_frame():
         assert isinstance(frame, pd.DataFrame) and not frame.empty
 
 
+@pytest.mark.slow
 def test_report_records_the_embedding_backend():
     report = build_text_theme_report(
         tables=_tables(), embedder=HashingEmbedder(), include_clusters=False
@@ -635,6 +668,7 @@ def test_report_records_the_embedding_backend():
     assert report.backend_name == "hashing"
 
 
+@pytest.mark.slow
 def test_report_is_deterministic():
     first = build_text_theme_report(
         tables=_tables(), embedder=HashingEmbedder(), include_clusters=False
@@ -647,6 +681,7 @@ def test_report_is_deterministic():
     pd.testing.assert_frame_equal(first.segment_themes, second.segment_themes)
 
 
+@pytest.mark.slow
 def test_report_can_skip_clustering():
     report = build_text_theme_report(
         tables=_tables(), embedder=HashingEmbedder(), include_clusters=False
@@ -660,6 +695,7 @@ def test_report_can_skip_clustering():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_clustering_returns_the_documented_schema():
     if not SKLEARN_AVAILABLE:
         return
@@ -669,6 +705,7 @@ def test_clustering_returns_the_documented_schema():
     assert len(clusters) <= 5
 
 
+@pytest.mark.slow
 def test_clusters_partition_the_period():
     if not SKLEARN_AVAILABLE:
         return
@@ -679,6 +716,7 @@ def test_clusters_partition_the_period():
     np.testing.assert_allclose(clusters["share_of_complaints"].sum(), 1.0)
 
 
+@pytest.mark.slow
 def test_clustering_is_deterministic():
     if not SKLEARN_AVAILABLE:
         return
@@ -688,6 +726,7 @@ def test_clustering_is_deterministic():
     )
 
 
+@pytest.mark.slow
 def test_clustering_rejects_more_clusters_than_complaints():
     if not SKLEARN_AVAILABLE:
         return
@@ -703,6 +742,7 @@ def test_clustering_rejects_more_clusters_than_complaints():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_dispute_related_themes_rise_in_august():
     summary = _summary()
 
@@ -717,6 +757,7 @@ def test_dispute_related_themes_rise_in_august():
     assert dispute_related["share_change"].sum() > 0
 
 
+@pytest.mark.slow
 def test_the_largest_theme_increases_are_all_dispute_related():
     summary = _summary().sort_values("complaint_change", ascending=False)
     top_four = set(summary.head(4)["theme_name"])
@@ -724,6 +765,7 @@ def test_the_largest_theme_increases_are_all_dispute_related():
     assert top_four == set(RISING_THEMES)
 
 
+@pytest.mark.slow
 def test_dispute_issue_volume_is_what_actually_grows_in_august():
     # The generator raises dispute-issue complaints only; fee and payment issue
     # volume does not grow. Any claim that fee or autopay themes "drove" the
@@ -748,6 +790,7 @@ def test_dispute_issue_volume_is_what_actually_grows_in_august():
         assert change < dispute_growth / 10, f"{issue} grew unexpectedly ({change})"
 
 
+@pytest.mark.slow
 def test_travel_complaints_concentrate_the_duplicate_charge_theme():
     # driver_analysis.py puts the corrected KPI movement in travel merchants.
     # The text should agree: within travel complaints, duplicate-looking charges
@@ -765,6 +808,7 @@ def test_travel_complaints_concentrate_the_duplicate_charge_theme():
     assert theme_rate > 2 * base_rate, f"theme is {theme_rate:.3f} travel vs {base_rate:.3f} base"
 
 
+@pytest.mark.slow
 def test_mobile_complaints_concentrate_dispute_submission_friction():
     # The other half of the driver finding was the mobile channel.
     row = _segment_theme_row(_segments(), "mobile", "mobile_dispute_submission_friction")
@@ -778,6 +822,7 @@ def test_mobile_complaints_concentrate_dispute_submission_friction():
     assert theme_rate > 2 * base_rate, f"theme is {theme_rate:.3f} mobile vs {base_rate:.3f} base"
 
 
+@pytest.mark.slow
 def test_travel_complaints_take_a_much_larger_share_of_the_august_book():
     labelled = _assignment().facts
     july = labelled[labelled["month"].eq(PRIOR_MONTH)]
@@ -791,6 +836,7 @@ def test_travel_complaints_take_a_much_larger_share_of_the_august_book():
     assert august_share > 2 * july_share, f"travel share {july_share:.3f} -> {august_share:.3f}"
 
 
+@pytest.mark.slow
 def test_the_directional_story_holds_under_the_sentence_transformer_backend():
     # Skips cleanly when no model is cached; never downloads.
     try:
@@ -826,6 +872,7 @@ def _raw_complaints() -> pd.DataFrame:
     return complaints
 
 
+@pytest.mark.slow
 def test_travel_vocabulary_never_appears_on_a_non_travel_purchase():
     # The defect this fixes: a grocery dispute described as "the same travel
     # charge appears twice", which contradicts the row shown beside it.
@@ -839,6 +886,7 @@ def test_travel_vocabulary_never_appears_on_a_non_travel_purchase():
     assert offenders.empty, offenders["complaint_narrative"].head(3).tolist()
 
 
+@pytest.mark.slow
 def test_the_only_non_travel_rows_with_travel_wording_are_foreign_fee_rows():
     # A foreign transaction fee is caused by international spending, so this
     # wording is context, not contradiction. It is confined to fee rows.
@@ -850,6 +898,7 @@ def test_the_only_non_travel_rows_with_travel_wording_are_foreign_fee_rows():
     assert non_travel["lower"].str.contains("foreign transaction fee").all()
 
 
+@pytest.mark.slow
 def test_most_travel_complaints_actually_use_travel_wording():
     complaints = _raw_complaints()
     travel = complaints[complaints["merchant_category"].eq("travel")]
@@ -859,6 +908,7 @@ def test_most_travel_complaints_actually_use_travel_wording():
     assert rate > 0.8, f"only {rate:.2f} of travel complaints use travel wording"
 
 
+@pytest.mark.slow
 def test_foreign_transaction_fee_wording_only_appears_on_foreign_fee_rows():
     complaints = _raw_complaints()
     transactions = _tables()["transactions"].set_index("transaction_id")
@@ -869,6 +919,7 @@ def test_foreign_transaction_fee_wording_only_appears_on_foreign_fee_rows():
     assert set(names) == {"FOREIGN TRANSACTION FEE"}
 
 
+@pytest.mark.slow
 def test_autopay_wording_only_appears_on_failed_mobile_payments():
     complaints = _raw_complaints()
     transactions = _tables()["transactions"].set_index("transaction_id")
@@ -880,6 +931,7 @@ def test_autopay_wording_only_appears_on_failed_mobile_payments():
     assert set(related["payment_failed"]) == {1}
 
 
+@pytest.mark.slow
 def test_app_wording_is_concentrated_on_mobile_rows():
     complaints = _raw_complaints()
     carriers = complaints[complaints["lower"].str.contains(APP_VOCABULARY, regex=True)]
@@ -889,6 +941,7 @@ def test_app_wording_is_concentrated_on_mobile_rows():
     assert carrier_rate > 3 * base_rate, f"{carrier_rate:.3f} vs {base_rate:.3f} base"
 
 
+@pytest.mark.slow
 def test_non_mobile_app_wording_is_only_the_deliberately_vague_narrative():
     # One vague narrative mentions the app without claiming a mobile purchase.
     # A customer can view any transaction in the app, so this is messiness
@@ -904,6 +957,7 @@ def test_non_mobile_app_wording_is_only_the_deliberately_vague_narrative():
     ).all()
 
 
+@pytest.mark.slow
 def test_top_representatives_never_contradict_their_own_columns():
     # The dashboard shows these rows as evidence, so they carry the most weight.
     examples = representative_complaints(_assignment(), top_n=5, period=SPIKE_MONTH)
@@ -916,6 +970,7 @@ def test_top_representatives_never_contradict_their_own_columns():
     assert set(autopay_claims["channel"]) <= {"mobile"}
 
 
+@pytest.mark.slow
 def test_mobile_friction_representatives_are_mobile_rows():
     examples = representative_complaints(_assignment(), top_n=5, period=SPIKE_MONTH)
     friction = examples[examples["theme_name"].eq("mobile_dispute_submission_friction")]
@@ -924,6 +979,7 @@ def test_mobile_friction_representatives_are_mobile_rows():
     assert set(friction["channel"]) == {"mobile"}
 
 
+@pytest.mark.slow
 def test_duplicate_travel_representatives_are_travel_rows_under_the_real_model():
     # The hashing fallback cannot separate "the same travel charge appears twice"
     # from "the same charge appears twice" -- one token apart in a bag of words.
@@ -944,6 +1000,7 @@ def test_duplicate_travel_representatives_are_travel_rows_under_the_real_model()
     assert set(travel_theme["merchant_category"]) == {"travel"}
 
 
+@pytest.mark.slow
 def test_the_vague_pool_gives_unclear_or_other_a_real_population():
     summary = _summary()
     unclear = _theme_row(summary, UNCLEAR_THEME)
@@ -985,6 +1042,7 @@ def test_ground_truth_publishes_the_narrative_theme_movement():
     assert (table["change"] == table["august_complaints"] - table["july_complaints"]).all()
 
 
+@pytest.mark.slow
 def test_ground_truth_probe_counts_match_the_complaint_data():
     probes = {
         "unclear merchant descriptor": r"descriptor|do not recognize|cannot identify|cannot tell which",
@@ -1029,6 +1087,7 @@ def test_ground_truth_still_reports_the_planted_defects():
     assert "Missing merchant categories from card-processor batch: 1,384" in text
 
 
+@pytest.mark.slow
 def test_generated_tables_are_internally_consistent():
     tables = _tables()
     complaints = tables[TABLE_COMPLAINTS]
@@ -1044,6 +1103,7 @@ def test_generated_tables_are_internally_consistent():
     assert complaints["related_transaction_id"].isin(set(transactions["transaction_id"])).all()
 
 
+@pytest.mark.slow
 def test_complaint_segment_columns_match_their_source_rows():
     tables = _tables()
     complaints = tables[TABLE_COMPLAINTS]
@@ -1063,6 +1123,7 @@ def test_complaint_segment_columns_match_their_source_rows():
     assert (category.to_numpy() == related_category.to_numpy()).all()
 
 
+@pytest.mark.slow
 def test_complaints_are_never_received_before_their_transaction():
     tables = _tables()
     complaints = tables[TABLE_COMPLAINTS]
@@ -1090,6 +1151,7 @@ def _csv_fingerprints() -> dict[str, tuple[str, int]]:
     }
 
 
+@pytest.mark.slow
 def test_building_the_report_does_not_modify_any_generated_csv():
     before = _csv_fingerprints()
 
@@ -1098,6 +1160,7 @@ def test_building_the_report_does_not_modify_any_generated_csv():
     assert _csv_fingerprints() == before
 
 
+@pytest.mark.slow
 def test_text_theme_analysis_never_writes_to_the_data_directory():
     before = sorted(path.name for path in DATA_DIR.iterdir())
 

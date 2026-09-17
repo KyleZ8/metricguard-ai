@@ -27,6 +27,7 @@ import importlib
 import sys
 
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -128,6 +129,7 @@ def test_every_status_has_a_colour_and_an_icon():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_dashboard_data_carries_every_report_the_page_renders():
     data = _data()
 
@@ -142,6 +144,7 @@ def test_dashboard_data_carries_every_report_the_page_renders():
     assert isinstance(data.quality_summary, dict)
 
 
+@pytest.mark.slow
 def test_metric_section_has_the_numbers_the_overview_shows():
     impact = _data().finance_metric_report.remediation_impact.iloc[0]
 
@@ -157,6 +160,7 @@ def test_metric_section_has_the_numbers_the_overview_shows():
     assert impact["raw_value"] > impact["corrected_value"]
 
 
+@pytest.mark.slow
 def test_period_comparison_supplies_both_month_over_month_changes():
     comparison = _data().metric_report.period_comparison.set_index("variant")
 
@@ -164,6 +168,7 @@ def test_period_comparison_supplies_both_month_over_month_changes():
     assert comparison.loc["corrected", "percent_change"] > 0
 
 
+@pytest.mark.slow
 def test_metric_report_keeps_the_full_monthly_history_available():
     trend = _data().finance_metric_report.monthly_trend
 
@@ -173,6 +178,7 @@ def test_metric_report_keeps_the_full_monthly_history_available():
         assert column in trend.columns
 
 
+@pytest.mark.slow
 def test_selected_trend_frame_shows_only_the_chosen_periods():
     data = streamlit_app._build_dashboard_data(
         metric_name="dispute_rate",
@@ -185,6 +191,7 @@ def test_selected_trend_frame_shows_only_the_chosen_periods():
     assert "2026-08" not in set(trend["month"])
 
 
+@pytest.mark.slow
 def test_selected_trend_frame_uses_rolling_period_labels_for_quarters():
     data = streamlit_app._build_dashboard_data(metric_name="dispute_rate", period_grain="quarterly")
     trend = streamlit_app.selected_trend_frame(data)
@@ -192,6 +199,7 @@ def test_selected_trend_frame_uses_rolling_period_labels_for_quarters():
     assert trend["month"].tolist() == ["2026-05 to 2026-07", "2026-06 to 2026-08"]
 
 
+@pytest.mark.slow
 def test_quarterly_dashboard_data_uses_multi_month_windows():
     data = streamlit_app._build_dashboard_data(metric_name="dispute_rate", period_grain="quarterly")
 
@@ -202,6 +210,7 @@ def test_quarterly_dashboard_data_uses_multi_month_windows():
     assert data.explanation is None, "grounded explanation is monthly-only until multi-month packets exist"
 
 
+@pytest.mark.slow
 def test_semiannual_dashboard_data_uses_multi_month_windows():
     data = streamlit_app._build_dashboard_data(metric_name="payment_failure_rate", period_grain="semiannual")
 
@@ -211,6 +220,7 @@ def test_semiannual_dashboard_data_uses_multi_month_windows():
     assert len(data.finance_metric_report.monthly_trend) == 3
 
 
+@pytest.mark.slow
 def test_selected_quality_report_changes_with_the_selected_period():
     june = streamlit_app._build_dashboard_data(
         metric_name="dispute_rate",
@@ -233,6 +243,7 @@ def test_selected_quality_report_changes_with_the_selected_period():
     assert "null_rate_drift__transactions__merchant_category" in set(august_open["check_name"])
 
 
+@pytest.mark.slow
 def test_selected_quality_report_for_july_has_one_fail_and_one_warning():
     july = streamlit_app._build_dashboard_data(
         metric_name="dispute_rate",
@@ -248,6 +259,7 @@ def test_selected_quality_report_for_july_has_one_fail_and_one_warning():
     assert label == "1 fail / 1 warn"
 
 
+@pytest.mark.slow
 def test_selected_month_explanation_uses_selected_quality_context():
     february = streamlit_app._build_dashboard_data(
         metric_name="dispute_rate",
@@ -262,6 +274,7 @@ def test_selected_month_explanation_uses_selected_quality_context():
     assert "Reissue the 2026-02" not in text
 
 
+@pytest.mark.slow
 def test_negative_month_explanation_is_valid_and_not_an_escalation():
     july = streamlit_app._build_dashboard_data(
         metric_name="dispute_rate",
@@ -276,6 +289,7 @@ def test_negative_month_explanation_is_valid_and_not_an_escalation():
     assert "replay-batch issue" not in text
 
 
+@pytest.mark.slow
 def test_selected_quality_report_changes_with_the_selected_kpi():
     dispute = streamlit_app._build_dashboard_data(metric_name="dispute_rate")
     delinquency = streamlit_app._build_dashboard_data(metric_name="delinquency_rate_30dpd_balance")
@@ -288,6 +302,7 @@ def test_selected_quality_report_changes_with_the_selected_kpi():
     assert "transactions" not in delinquency_tables
 
 
+@pytest.mark.slow
 def test_non_dispute_kpis_build_generic_dashboard_data_without_dispute_only_reports():
     for metric_name in streamlit_app.AVAILABLE_KPIS:
         data = streamlit_app._build_dashboard_data(
@@ -312,6 +327,7 @@ def test_non_dispute_kpis_build_generic_dashboard_data_without_dispute_only_repo
             assert data.explanation is None
 
 
+@pytest.mark.slow
 def test_quality_summary_counts_reconcile_with_the_report():
     data = _data()
     summary = data.quality_summary
@@ -321,6 +337,7 @@ def test_quality_summary_counts_reconcile_with_the_report():
     assert summary["failed"] > 0, "the demo depends on at least one failing check"
 
 
+@pytest.mark.slow
 def test_the_headline_quality_checks_the_panel_pins_are_present():
     report = _data().quality_report
 
@@ -330,6 +347,7 @@ def test_the_headline_quality_checks_the_panel_pins_are_present():
         assert rows.iloc[0]["status"] in {STATUS_FAIL, STATUS_WARN}
 
 
+@pytest.mark.slow
 def test_driver_section_has_both_tables_and_the_interaction():
     report = _data().driver_report
 
@@ -339,6 +357,7 @@ def test_driver_section_has_both_tables_and_the_interaction():
     assert report.top_count_drivers.iloc[0]["segment_value"] == "travel"
 
 
+@pytest.mark.slow
 def test_theme_section_has_summary_segments_and_examples():
     report = _data().theme_report
 
@@ -348,6 +367,7 @@ def test_theme_section_has_summary_segments_and_examples():
     assert report.backend_name, "the page displays which embedding backend ran"
 
 
+@pytest.mark.slow
 def test_evidence_table_has_the_columns_the_page_shows():
     examples = _data().theme_report.representative_complaints
 
@@ -356,6 +376,7 @@ def test_evidence_table_has_the_columns_the_page_shows():
     assert examples["narrative"].str.len().min() > 0
 
 
+@pytest.mark.slow
 def test_the_travel_and_mobile_focus_rows_exist():
     segments = _data().theme_report.segment_themes
     focus = segments[segments["segment_value"].isin(["travel", "mobile"])]
@@ -364,6 +385,7 @@ def test_the_travel_and_mobile_focus_rows_exist():
     assert set(focus["segment_value"]) == {"travel", "mobile"}
 
 
+@pytest.mark.slow
 def test_action_plan_prioritises_recommendations_and_scenarios():
     report = _data().action_report
 
@@ -380,6 +402,7 @@ def test_action_plan_prioritises_recommendations_and_scenarios():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_the_dashboard_uses_the_deterministic_explanation_by_default():
     explanation = _data().explanation
 
@@ -387,6 +410,7 @@ def test_the_dashboard_uses_the_deterministic_explanation_by_default():
     assert explanation.generated_by == "deterministic-fallback"
 
 
+@pytest.mark.slow
 def test_the_explanation_exposes_a_validation_result_to_surface():
     validation = _data().explanation.validation
 
@@ -396,6 +420,7 @@ def test_the_explanation_exposes_a_validation_result_to_surface():
     assert validation.unsupported == ()
 
 
+@pytest.mark.slow
 def test_the_explanation_has_every_field_the_panel_renders():
     explanation = _data().explanation
 
@@ -414,6 +439,7 @@ def test_the_explanation_has_every_field_the_panel_renders():
         assert getattr(explanation, field_name), field_name
 
 
+@pytest.mark.slow
 def test_the_export_payload_is_non_empty_markdown():
     markdown = _data().explanation.to_markdown()
 
@@ -434,6 +460,7 @@ def test_the_status_badge_never_relies_on_colour_alone():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_the_trend_chart_builds_with_both_series():
     data = _data()
     chart = streamlit_app.build_trend_chart(
@@ -451,6 +478,7 @@ def test_the_trend_chart_builds_with_both_series():
     assert streamlit_app.COLOR_CORRECTED in rendered
 
 
+@pytest.mark.slow
 def test_the_trend_chart_marks_the_selected_windows():
     data = streamlit_app._build_dashboard_data(metric_name="dispute_rate", period_grain="quarterly")
     chart = streamlit_app.build_trend_chart(
@@ -464,6 +492,7 @@ def test_the_trend_chart_marks_the_selected_windows():
     assert "2026-05 to 2026-07" in rendered
 
 
+@pytest.mark.slow
 def test_the_heatmap_builds_with_a_diverging_scale_around_zero():
     chart = streamlit_app.build_interaction_heatmap(_data().driver_report.interaction_heatmap_data)
     spec = chart.to_dict()
@@ -477,6 +506,7 @@ def test_the_heatmap_builds_with_a_diverging_scale_around_zero():
     ]
 
 
+@pytest.mark.slow
 def test_charts_paint_an_explicit_surface_so_the_palette_is_read_correctly():
     chart = streamlit_app.build_trend_chart(_data().metric_report.monthly_trend)
     spec = chart.to_dict()
@@ -519,12 +549,14 @@ def _rendered_app():
     return app
 
 
+@pytest.mark.slow
 def test_the_page_renders_without_raising():
     app = _rendered_app()
 
     assert not app.exception, [str(item.value) for item in app.exception]
 
 
+@pytest.mark.slow
 def test_the_rendered_page_shows_the_raw_and_corrected_rates():
     metrics = {metric.label: metric.value for metric in _rendered_app().metric}
 
@@ -533,6 +565,7 @@ def test_the_rendered_page_shows_the_raw_and_corrected_rates():
     assert metrics["Numerator removed"] == "165"
 
 
+@pytest.mark.slow
 def test_the_rendered_page_shows_both_month_over_month_deltas():
     deltas = {metric.label: metric.delta for metric in _rendered_app().metric}
 
@@ -540,18 +573,21 @@ def test_the_rendered_page_shows_both_month_over_month_deltas():
     assert deltas["Corrected value"] == "+21.3%"
 
 
+@pytest.mark.slow
 def test_the_rendered_page_surfaces_the_data_quality_status():
     metrics = {metric.label: metric.value for metric in _rendered_app().metric}
 
     assert "fail" in str(metrics["Data quality"])
 
 
+@pytest.mark.slow
 def test_the_rendered_page_has_the_seven_investigation_tabs():
     app = _rendered_app()
 
     assert len(app.tabs) == 7
 
 
+@pytest.mark.slow
 def test_the_rendered_page_offers_the_mode_and_kpi_selectors():
     selections = {box.label: box.value for box in _rendered_app().selectbox}
 
@@ -562,6 +598,7 @@ def test_the_rendered_page_offers_the_mode_and_kpi_selectors():
     assert selections["Comparison period"] == PRIOR_MONTH
 
 
+@pytest.mark.slow
 def test_the_rendered_page_offers_the_summary_download():
     # Download buttons have no dedicated AppTest accessor; reach them by name.
     labels = [element.label for element in _rendered_app().get("download_button")]
@@ -569,6 +606,7 @@ def test_the_rendered_page_offers_the_summary_download():
     assert any("Download manager summary" in label for label in labels)
 
 
+@pytest.mark.slow
 def test_an_unwired_business_mode_says_so_instead_of_showing_borrowed_numbers():
     from streamlit.testing.v1 import AppTest
 
@@ -598,6 +636,7 @@ def _csv_fingerprints() -> dict[str, tuple[str, int]]:
     }
 
 
+@pytest.mark.slow
 def test_building_the_dashboard_does_not_modify_any_generated_csv():
     before = _csv_fingerprints()
 
@@ -608,6 +647,7 @@ def test_building_the_dashboard_does_not_modify_any_generated_csv():
     assert _csv_fingerprints() == before
 
 
+@pytest.mark.slow
 def test_the_dashboard_never_writes_to_the_data_directory():
     before = sorted(path.name for path in DATA_DIR.iterdir())
 
