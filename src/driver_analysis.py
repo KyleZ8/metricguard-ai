@@ -57,7 +57,7 @@ from metric_engine import (
     resolve_periods,
     resolve_tables,
 )
-from quality_checks import DATA_DIR, TABLE_ACCOUNTS, TABLE_TRANSACTIONS
+from quality_checks import DATA_DIR, TABLE_ACCOUNTS, TABLE_TRANSACTIONS, _is_blank
 
 
 try:  # The decision-tree stretch is optional by design.
@@ -182,8 +182,13 @@ def corrected_purchase_facts(
 
     for field in SEGMENT_FIELDS:
         if field in purchases.columns:
+            # ~_is_blank(...), not ~purchases[field].notna(): merchant_category has a
+            # planted missing-value defect that is NaN after a CSV round-trip but a
+            # literal "" after a Parquet round-trip (data/sample/). notna() alone
+            # would only label the CSV case __missing__ and let "" through unlabeled
+            # on Parquet-loaded data.
             purchases[field] = (
-                purchases[field].astype("object").where(purchases[field].notna(), MISSING_LABEL).astype(str)
+                purchases[field].astype("object").where(~_is_blank(purchases[field]), MISSING_LABEL).astype(str)
             )
 
     return purchases

@@ -678,13 +678,20 @@ def check_amount_sign_validity(transactions: pd.DataFrame) -> list[dict[str, obj
 def check_accepted_values(tables: Mapping[str, pd.DataFrame]) -> list[dict[str, object]]:
     """Check 5: categorical fields must stay inside their documented domain.
 
-    Nulls are ignored here; the completeness check already owns them.
+    Nulls and blank/whitespace-only strings are ignored here; the
+    completeness check already owns them. Uses ``_is_blank`` (the same
+    dtype-robust helper ``check_required_field_completeness`` uses, fixed
+    under amendment A1) rather than a plain ``.isna()``, so this behaves
+    identically regardless of whether the same logical missing value
+    round-tripped through CSV (blank -> NaN on read) or Parquet (blank stays
+    a literal empty string) -- see the CC3 dataset-size parity check in
+    .ai/PARITY_CC3.md.
     """
     results: list[dict[str, object]] = []
     for (table_name, column), accepted in ACCEPTED_VALUES.items():
         frame = tables[table_name]
         values = frame[column]
-        non_null = values[~values.isna()]
+        non_null = values[~_is_blank(values)]
         unexpected_mask = ~non_null.astype(str).isin(accepted)
         affected_rows = int(unexpected_mask.sum())
         status = STATUS_FAIL if affected_rows else STATUS_PASS

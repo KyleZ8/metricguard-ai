@@ -60,7 +60,7 @@ import numpy as np
 import pandas as pd
 
 from metric_engine import resolve_periods, resolve_tables
-from quality_checks import DATA_DIR, TABLE_ACCOUNTS, TABLE_COMPLAINTS
+from quality_checks import DATA_DIR, TABLE_ACCOUNTS, TABLE_COMPLAINTS, _is_blank
 
 
 try:  # Optional: only needed for the emerging-theme clustering stretch.
@@ -383,8 +383,13 @@ def complaint_fact_table(
 
     for field in COMPLAINT_SEGMENT_FIELDS + ACCOUNT_JOIN_FIELDS:
         if field in complaints.columns:
+            # ~_is_blank(...), not ~complaints[field].notna(): merchant_category can
+            # carry the planted missing-value defect through from its related
+            # transaction, which is NaN after a CSV round-trip but a literal "" after
+            # a Parquet round-trip (data/sample/). notna() alone would only label the
+            # CSV case __missing__ and let "" through unlabeled on Parquet-loaded data.
             complaints[field] = (
-                complaints[field].astype("object").where(complaints[field].notna(), "__missing__").astype(str)
+                complaints[field].astype("object").where(~_is_blank(complaints[field]), "__missing__").astype(str)
             )
 
     leading = [column for column in COMPLAINT_FACT_COLUMNS if column in complaints.columns]
