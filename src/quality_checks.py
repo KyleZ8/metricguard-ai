@@ -46,7 +46,7 @@ from typing import Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from config import DATA_DIR
+from config import DATA_DIR, METRIC_DEFINITIONS_PATH
 
 RESULT_COLUMNS = (
     "check_name",
@@ -250,22 +250,46 @@ DEFAULT_THRESHOLDS = Thresholds()
 # ---------------------------------------------------------------------------
 
 
+def _read_table(data_dir: Path, table_name: str, parse_dates: Sequence[str] = ()) -> pd.DataFrame:
+    """Read one table as Parquet if present, else CSV, applying the same date parsing either way.
+
+    Demo-size tables (``data/sample/``) are Parquet; full-size tables
+    (``data/synthetic/``) are CSV. Parquet round-trips dtypes, but the
+    generator writes a few timestamp-shaped columns as plain ISO strings (to
+    match what a real card-processor/complaint feed would hand an analyst),
+    so ``parse_dates`` is applied uniformly after loading either format
+    rather than trusted to already be correct in Parquet.
+    """
+    parquet_path = data_dir / f"{table_name}.parquet"
+    if parquet_path.exists():
+        frame = pd.read_parquet(parquet_path)
+    else:
+        frame = pd.read_csv(data_dir / f"{table_name}.csv")
+    for column in parse_dates:
+        frame[column] = pd.to_datetime(frame[column])
+    return frame
+
+
 def load_tables(data_dir: Path = DATA_DIR) -> dict[str, pd.DataFrame]:
-    """Load the synthetic tables keyed by their physical table name."""
+    """Load the synthetic tables keyed by their physical table name.
+
+    ``metric_definitions`` is always read from :data:`METRIC_DEFINITIONS_PATH`
+    (amendment A10): it is metadata, not data that scales with dataset size,
+    so it is never duplicated into ``data/sample/`` — both dataset sizes
+    share the one file in ``data/synthetic/``.
+    """
     return {
-        TABLE_ACCOUNTS: pd.read_csv(data_dir / "accounts.csv", parse_dates=["open_date"]),
-        TABLE_SNAPSHOTS: pd.read_csv(
-            data_dir / "account_monthly_snapshot.csv",
-            parse_dates=["snapshot_loaded_at"],
+        TABLE_ACCOUNTS: _read_table(data_dir, "accounts", parse_dates=["open_date"]),
+        TABLE_SNAPSHOTS: _read_table(
+            data_dir, "account_monthly_snapshot", parse_dates=["snapshot_loaded_at"]
         ),
-        TABLE_TRANSACTIONS: pd.read_csv(
-            data_dir / "transactions.csv",
+        TABLE_TRANSACTIONS: _read_table(
+            data_dir,
+            "transactions",
             parse_dates=["transaction_date", "posted_date", "created_at"],
         ),
-        TABLE_COMPLAINTS: pd.read_csv(
-            data_dir / "complaints.csv", parse_dates=["date_received"]
-        ),
-        TABLE_METRIC_DEFINITIONS: pd.read_csv(data_dir / "metric_definitions.csv"),
+        TABLE_COMPLAINTS: _read_table(data_dir, "complaints", parse_dates=["date_received"]),
+        TABLE_METRIC_DEFINITIONS: pd.read_csv(METRIC_DEFINITIONS_PATH),
     }
 
 

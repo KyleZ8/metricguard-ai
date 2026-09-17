@@ -41,6 +41,7 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from action_engine import build_action_plan  # noqa: E402
+from config import DATASET_SIZE  # noqa: E402
 from driver_analysis import build_driver_report, heatmap_matrix  # noqa: E402
 from explanation_engine import build_evidence_packet, explain  # noqa: E402
 from metric_engine import (  # noqa: E402
@@ -347,6 +348,8 @@ def render_header(tables: dict[str, pd.DataFrame]) -> tuple[str, str, str, str |
         f'<span class="sub">{APP_SUBTITLE}</span></div>',
         unsafe_allow_html=True,
     )
+    dataset_label = "sample (demo)" if DATASET_SIZE == "sample" else "full"
+    st.caption(f"Dataset: {dataset_label} — set with the METRICGUARD_DATA environment variable")
 
     controls = st.columns([1.05, 1.15, 1.15, 1.55, 1.55])
     business_mode = controls[0].selectbox("Business mode", BUSINESS_MODES, index=0)
