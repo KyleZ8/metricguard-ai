@@ -1,0 +1,47 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "B",
+    "BLE",
+    "C4",
+    "E",
+    "F",
+    "I",
+    "N",
+    "PD",
+    "PERF",
+    "PL",
+    "RUF",
+    "SIM",
+    "UP",
+    "W",
+]
+ignore = [
+    "E501",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "action_engine",
+    "config",
+    "driver_analysis",
+    "explanation_engine",
+    "generate_synthetic_data",
+    "metric_engine",
+    "quality_checks",
+    "run_pipeline",
+    "streamlit_app",
+    "text_theme_analysis",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: tests that need the full synthetic data or full pipeline/app integration",
+]

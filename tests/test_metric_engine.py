@@ -23,6 +23,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -167,6 +168,7 @@ def _raises(exception_type, callable_, *args, **kwargs):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_resolve_tables_returns_all_five_synthetic_tables_when_none_supplied():
     tables = resolve_tables()
 
@@ -180,6 +182,7 @@ def test_resolve_tables_returns_all_five_synthetic_tables_when_none_supplied():
     assert not tables[TABLE_TRANSACTIONS].empty
 
 
+@pytest.mark.slow
 def test_resolve_tables_passes_supplied_tables_through_without_reading_disk():
     toy = {TABLE_TRANSACTIONS: _toy_transactions()}
 
@@ -188,6 +191,7 @@ def test_resolve_tables_passes_supplied_tables_through_without_reading_disk():
     assert resolved[TABLE_TRANSACTIONS] is toy[TABLE_TRANSACTIONS]
 
 
+@pytest.mark.slow
 def test_resolve_tables_accepts_the_older_engine_key_naming():
     tables = _tables()
     engine_style = {
@@ -201,6 +205,7 @@ def test_resolve_tables_accepts_the_older_engine_key_naming():
     assert "snapshots" not in resolved
 
 
+@pytest.mark.slow
 def test_build_metric_report_accepts_injected_tables():
     report = build_metric_report({TABLE_TRANSACTIONS: _toy_transactions()})
 
@@ -213,6 +218,7 @@ def test_build_metric_report_accepts_injected_tables():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_deduplication_removes_the_planted_replay_rows():
     transactions = _transactions()
 
@@ -222,6 +228,7 @@ def test_deduplication_removes_the_planted_replay_rows():
     assert deduped["source_transaction_id"].duplicated().sum() == 0
 
 
+@pytest.mark.slow
 def test_deduplication_keeps_the_earliest_created_at_row():
     deduped = deduplicate_transactions(_toy_transactions())
 
@@ -230,6 +237,7 @@ def test_deduplication_keeps_the_earliest_created_at_row():
     assert survivor.iloc[0]["transaction_id"] == "T6"
 
 
+@pytest.mark.slow
 def test_deduplication_preserves_original_row_order():
     transactions = _transactions()
 
@@ -239,6 +247,7 @@ def test_deduplication_preserves_original_row_order():
     assert deduped["transaction_id"].tolist() == transactions.loc[deduped.index, "transaction_id"].tolist()
 
 
+@pytest.mark.slow
 def test_deduplication_is_invariant_to_input_row_order():
     toy = _toy_transactions()
     shuffled = toy.sample(frac=1.0, random_state=7)
@@ -249,6 +258,7 @@ def test_deduplication_is_invariant_to_input_row_order():
     assert from_ordered == from_shuffled
 
 
+@pytest.mark.slow
 def test_deduplication_breaks_created_at_ties_deterministically():
     toy = _toy_transactions()
     # Force an exact tie between the two S6 rows.
@@ -263,6 +273,7 @@ def test_deduplication_breaks_created_at_ties_deterministically():
     assert first[first["source_transaction_id"].eq("S6")].iloc[0]["transaction_id"] == "T6"
 
 
+@pytest.mark.slow
 def test_deduplication_keeps_rows_without_a_source_event_id():
     toy = _toy_transactions()
     toy.loc[toy["transaction_id"].isin(["T8", "T9"]), "source_transaction_id"] = np.nan
@@ -272,6 +283,7 @@ def test_deduplication_keeps_rows_without_a_source_event_id():
     assert {"T8", "T9"}.issubset(set(deduped["transaction_id"]))
 
 
+@pytest.mark.slow
 def test_deduplication_is_a_no_op_on_already_unique_source_events():
     unique = _transactions().drop_duplicates("source_transaction_id").head(2_000)
 
@@ -280,6 +292,7 @@ def test_deduplication_is_a_no_op_on_already_unique_source_events():
     pd.testing.assert_frame_equal(deduped, unique)
 
 
+@pytest.mark.slow
 def test_deduplication_requires_the_source_event_key():
     toy = _toy_transactions().drop(columns=["source_transaction_id"])
 
@@ -288,6 +301,7 @@ def test_deduplication_requires_the_source_event_key():
     assert "source_transaction_id" in str(error)
 
 
+@pytest.mark.slow
 def test_duplicate_source_transactions_returns_exactly_the_removed_rows():
     transactions = _transactions()
 
@@ -299,6 +313,7 @@ def test_duplicate_source_transactions_returns_exactly_the_removed_rows():
     assert removed.index.intersection(kept.index).empty
 
 
+@pytest.mark.slow
 def test_removed_duplicates_are_all_disputed_august_purchases():
     removed = duplicate_source_transactions(_transactions())
 
@@ -313,6 +328,7 @@ def test_removed_duplicates_are_all_disputed_august_purchases():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_toy_raw_dispute_rate_is_hand_checkable():
     raw = monthly_dispute_rate(_toy_transactions(), deduped=False).set_index("month")
 
@@ -322,6 +338,7 @@ def test_toy_raw_dispute_rate_is_hand_checkable():
     assert raw.loc["2026-02", "disputed_purchases"] == 3
 
 
+@pytest.mark.slow
 def test_toy_corrected_dispute_rate_drops_the_replayed_dispute():
     corrected = monthly_dispute_rate(_toy_transactions(), deduped=True).set_index("month")
 
@@ -332,6 +349,7 @@ def test_toy_corrected_dispute_rate_drops_the_replayed_dispute():
     assert corrected.loc["2026-01", "dispute_rate"] == 0.25
 
 
+@pytest.mark.slow
 def test_dispute_rate_counts_only_purchase_transactions():
     toy = _toy_transactions()
 
@@ -342,6 +360,7 @@ def test_dispute_rate_counts_only_purchase_transactions():
     assert raw["purchase_transactions"].sum() == len(toy) - payments
 
 
+@pytest.mark.slow
 def test_monthly_dispute_rate_labels_its_variant_and_metric():
     raw = monthly_dispute_rate(_toy_transactions(), deduped=False)
     corrected = monthly_dispute_rate(_toy_transactions(), deduped=True)
@@ -351,6 +370,7 @@ def test_monthly_dispute_rate_labels_its_variant_and_metric():
     assert set(raw["metric_name"]) == {METRIC_NAME}
 
 
+@pytest.mark.slow
 def test_monthly_dispute_rate_handles_a_table_with_no_purchases():
     payments_only = _toy_transactions().query("transaction_type == 'payment'")
 
@@ -360,6 +380,7 @@ def test_monthly_dispute_rate_handles_a_table_with_no_purchases():
     assert "dispute_rate" in result.columns
 
 
+@pytest.mark.slow
 def test_raw_monthly_counts_match_ground_truth():
     trend = _trend().set_index("month")
 
@@ -368,6 +389,7 @@ def test_raw_monthly_counts_match_ground_truth():
         assert trend.loc[month, "disputed_purchases_raw"] == disputed, month
 
 
+@pytest.mark.slow
 def test_corrected_monthly_denominator_matches_ground_truth_unique_source_events():
     trend = _trend().set_index("month")
 
@@ -375,6 +397,7 @@ def test_corrected_monthly_denominator_matches_ground_truth_unique_source_events
         assert trend.loc[month, "purchase_transactions_corrected"] == unique_source_events, month
 
 
+@pytest.mark.slow
 def test_ground_truth_dispute_rates_are_reproduced_to_four_decimals():
     trend = _trend().set_index("month")
 
@@ -383,6 +406,7 @@ def test_ground_truth_dispute_rates_are_reproduced_to_four_decimals():
     assert round(float(trend.loc[PRIOR_MONTH, "dispute_rate_raw"]), 4) == 0.0133
 
 
+@pytest.mark.slow
 def test_months_before_the_replay_are_identical_raw_and_corrected():
     trend = _trend()
     untouched = trend[trend["month"] < SPIKE_MONTH]
@@ -397,6 +421,7 @@ def test_months_before_the_replay_are_identical_raw_and_corrected():
     )
 
 
+@pytest.mark.slow
 def test_correction_lowers_august_but_leaves_it_above_july():
     trend = _trend().set_index("month")
 
@@ -409,6 +434,7 @@ def test_correction_lowers_august_but_leaves_it_above_july():
     assert corrected > july * 1.15
 
 
+@pytest.mark.slow
 def test_metric_is_invariant_to_which_row_of_a_duplicate_pair_survives():
     # Deduplication keeps the earliest created_at. In this dataset the replay
     # batch is often the earlier row, so it is worth proving the choice cannot
@@ -431,6 +457,7 @@ def test_metric_is_invariant_to_which_row_of_a_duplicate_pair_survives():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_monthly_trend_table_has_the_documented_schema():
     trend = _trend()
 
@@ -438,6 +465,7 @@ def test_monthly_trend_table_has_the_documented_schema():
     assert len(trend) == len(GROUND_TRUTH_TREND)
 
 
+@pytest.mark.slow
 def test_monthly_trend_months_are_sorted_and_unique():
     trend = _trend()
 
@@ -445,6 +473,7 @@ def test_monthly_trend_months_are_sorted_and_unique():
     assert trend["month"].tolist() == sorted(trend["month"].tolist())
 
 
+@pytest.mark.slow
 def test_monthly_trend_count_columns_are_integers():
     trend = _trend()
 
@@ -459,6 +488,7 @@ def test_monthly_trend_count_columns_are_integers():
         assert pd.api.types.is_integer_dtype(trend[column]), column
 
 
+@pytest.mark.slow
 def test_monthly_trend_is_internally_consistent():
     trend = _trend()
 
@@ -476,6 +506,7 @@ def test_monthly_trend_is_internally_consistent():
     )
 
 
+@pytest.mark.slow
 def test_monthly_trend_rates_equal_numerator_over_denominator():
     trend = _trend()
 
@@ -489,6 +520,7 @@ def test_monthly_trend_rates_equal_numerator_over_denominator():
     )
 
 
+@pytest.mark.slow
 def test_monthly_trend_only_ever_removes_rows():
     trend = _trend()
 
@@ -501,6 +533,7 @@ def test_monthly_trend_only_ever_removes_rows():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_period_comparison_has_the_documented_schema_and_both_variants():
     comparison = _report().period_comparison
 
@@ -508,6 +541,7 @@ def test_period_comparison_has_the_documented_schema_and_both_variants():
     assert comparison["variant"].tolist() == [VARIANT_RAW, VARIANT_CORRECTED]
 
 
+@pytest.mark.slow
 def test_period_comparison_defaults_to_the_two_most_recent_months():
     report = _report()
 
@@ -515,6 +549,7 @@ def test_period_comparison_defaults_to_the_two_most_recent_months():
     assert report.previous_period == PRIOR_MONTH
 
 
+@pytest.mark.slow
 def test_period_comparison_change_arithmetic_is_consistent():
     comparison = _report().period_comparison
 
@@ -528,6 +563,7 @@ def test_period_comparison_change_arithmetic_is_consistent():
     )
 
 
+@pytest.mark.slow
 def test_period_comparison_numerators_and_denominators_match_the_trend():
     trend = _trend().set_index("month")
     comparison = _report().period_comparison.set_index("variant")
@@ -539,6 +575,7 @@ def test_period_comparison_numerators_and_denominators_match_the_trend():
     )
 
 
+@pytest.mark.slow
 def test_raw_movement_looks_larger_than_corrected_movement():
     comparison = _report().period_comparison.set_index("variant")
 
@@ -549,6 +586,7 @@ def test_raw_movement_looks_larger_than_corrected_movement():
     assert comparison.loc[VARIANT_CORRECTED, "percent_change"] > 0
 
 
+@pytest.mark.slow
 def test_period_comparison_accepts_explicit_periods():
     comparison = period_comparison_table(_trend(), "2026-03", "2026-01")
 
@@ -556,6 +594,7 @@ def test_period_comparison_accepts_explicit_periods():
     assert set(comparison["previous_period"]) == {"2026-01"}
 
 
+@pytest.mark.slow
 def test_toy_period_comparison_is_hand_checkable():
     comparison = period_comparison_table(monthly_trend_table(_toy_transactions())).set_index("variant")
 
@@ -570,6 +609,7 @@ def test_toy_period_comparison_is_hand_checkable():
     np.testing.assert_allclose(corrected["percent_change"], 0.6)
 
 
+@pytest.mark.slow
 def test_unknown_period_is_rejected_with_the_available_months_listed():
     error = _raises(KeyError, period_comparison_table, _trend(), "2027-01", PRIOR_MONTH)
 
@@ -577,12 +617,14 @@ def test_unknown_period_is_rejected_with_the_available_months_listed():
     assert SPIKE_MONTH in str(error)
 
 
+@pytest.mark.slow
 def test_earliest_month_cannot_be_used_as_a_current_period_by_default():
     error = _raises(ValueError, resolve_periods, _trend(), "2026-01")
 
     assert "earliest" in str(error)
 
 
+@pytest.mark.slow
 def test_a_single_month_of_history_cannot_be_compared():
     single_month = _trend().head(1)
 
@@ -596,6 +638,7 @@ def test_a_single_month_of_history_cannot_be_compared():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_remediation_impact_has_the_documented_schema_and_one_row():
     impact = _report().remediation_impact
 
@@ -603,6 +646,7 @@ def test_remediation_impact_has_the_documented_schema_and_one_row():
     assert len(impact) == 1
 
 
+@pytest.mark.slow
 def test_remediation_impact_reports_the_six_required_quantities_for_august():
     impact = _report().remediation_impact.iloc[0]
 
@@ -615,6 +659,7 @@ def test_remediation_impact_reports_the_six_required_quantities_for_august():
     assert impact["duplicate_disputed_rows_removed"] == EXPECTED_DUPLICATE_ROWS
 
 
+@pytest.mark.slow
 def test_remediation_impact_is_internally_consistent():
     impact = _report().remediation_impact.iloc[0]
 
@@ -632,6 +677,7 @@ def test_remediation_impact_is_internally_consistent():
     )
 
 
+@pytest.mark.slow
 def test_remediation_impact_is_all_zero_for_a_month_without_duplicates():
     impact = remediation_impact_table(_trend(), PRIOR_MONTH).iloc[0]
 
@@ -641,18 +687,21 @@ def test_remediation_impact_is_all_zero_for_a_month_without_duplicates():
     assert impact["raw_dispute_rate"] == impact["corrected_dispute_rate"]
 
 
+@pytest.mark.slow
 def test_remediation_impact_defaults_to_the_latest_month():
     impact = remediation_impact_table(_trend()).iloc[0]
 
     assert impact["period"] == SPIKE_MONTH
 
 
+@pytest.mark.slow
 def test_remediation_impact_rejects_an_unknown_period():
     error = _raises(KeyError, remediation_impact_table, _trend(), "1999-01")
 
     assert "1999-01" in str(error)
 
 
+@pytest.mark.slow
 def test_toy_remediation_impact_is_hand_checkable():
     impact = remediation_impact_table(monthly_trend_table(_toy_transactions()), "2026-02").iloc[0]
 
@@ -669,6 +718,7 @@ def test_toy_remediation_impact_is_hand_checkable():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_metric_report_exposes_the_three_dashboard_frames():
     report = _report()
 
@@ -678,6 +728,7 @@ def test_metric_report_exposes_the_three_dashboard_frames():
         assert not frame.empty
 
 
+@pytest.mark.slow
 def test_building_the_report_twice_gives_identical_frames():
     first = build_metric_report(_tables())
     second = build_metric_report(_tables())
@@ -687,12 +738,14 @@ def test_building_the_report_twice_gives_identical_frames():
     pd.testing.assert_frame_equal(first.remediation_impact, second.remediation_impact)
 
 
+@pytest.mark.slow
 def test_trend_is_invariant_to_input_row_order():
     shuffled = _transactions().sample(frac=1.0, random_state=11)
 
     pd.testing.assert_frame_equal(monthly_trend_table(shuffled), _trend())
 
 
+@pytest.mark.slow
 def test_report_frames_contain_no_infinite_values():
     report = _report()
 
@@ -701,6 +754,7 @@ def test_report_frames_contain_no_infinite_values():
         assert np.isfinite(numeric.to_numpy(dtype=float)).all()
 
 
+@pytest.mark.slow
 def test_a_zero_denominator_yields_nan_rather_than_infinity():
     empty_month = _toy_transactions().copy()
     empty_month["is_disputed"] = 0
@@ -720,6 +774,7 @@ def test_all_finance_kpis_are_exposed_in_a_stable_order():
     assert [metric_spec(name).metric_name for name in FINANCE_KPIS] == list(FINANCE_KPIS)
 
 
+@pytest.mark.slow
 def test_every_finance_kpi_has_a_monthly_raw_and_corrected_trend():
     for metric_name in FINANCE_KPIS:
         trend = generic_monthly_trend_table(_tables(), metric_name)
@@ -741,6 +796,7 @@ def test_every_finance_kpi_has_a_monthly_raw_and_corrected_trend():
         assert np.isfinite(trend["corrected_value"]).all(), metric_name
 
 
+@pytest.mark.slow
 def test_every_finance_kpi_supports_explicit_period_comparison_and_remediation():
     for metric_name in FINANCE_KPIS:
         trend = generic_monthly_trend_table(_tables(), metric_name)
@@ -756,6 +812,7 @@ def test_every_finance_kpi_supports_explicit_period_comparison_and_remediation()
         assert impact["raw_numerator"] >= impact["corrected_numerator"]
 
 
+@pytest.mark.slow
 def test_every_finance_kpi_builds_a_dashboard_report_with_segment_drivers():
     for metric_name in FINANCE_KPIS:
         report = build_finance_metric_report(
@@ -773,6 +830,7 @@ def test_every_finance_kpi_builds_a_dashboard_report_with_segment_drivers():
         assert report.metric_definition["metric_name"] == metric_name
 
 
+@pytest.mark.slow
 def test_duplicate_remediation_only_changes_purchase_transaction_kpis_in_august():
     changed = []
     unchanged = []
@@ -789,6 +847,7 @@ def test_duplicate_remediation_only_changes_purchase_transaction_kpis_in_august(
     assert set(unchanged) == set(FINANCE_KPIS) - set(changed)
 
 
+@pytest.mark.slow
 def test_quarterly_trend_aggregates_three_month_windows():
     monthly = generic_monthly_trend_table(_tables(), "dispute_rate")
     quarterly = aggregate_metric_trend(monthly, "quarterly")
@@ -806,6 +865,7 @@ def test_quarterly_trend_aggregates_three_month_windows():
     )
 
 
+@pytest.mark.slow
 def test_semiannual_report_uses_six_month_windows_and_records_the_months():
     report = build_finance_metric_report("payment_failure_rate", _tables(), period_grain="semiannual")
 
@@ -816,6 +876,7 @@ def test_semiannual_report_uses_six_month_windows_and_records_the_months():
     assert period_months_from_trend(report.monthly_trend, report.previous_period) == report.previous_months
 
 
+@pytest.mark.slow
 def test_generic_segment_drivers_compare_full_period_windows():
     monthly = generic_segment_driver_table(
         _tables(), "dispute_rate", "2026-08", "2026-07", period_grain="monthly"
@@ -835,6 +896,7 @@ def test_generic_segment_drivers_compare_full_period_windows():
     assert quarterly_travel["previous_denominator"] > monthly_travel["previous_denominator"]
 
 
+@pytest.mark.slow
 def test_unknown_period_grain_is_rejected():
     error = _raises(ValueError, aggregate_metric_trend, generic_monthly_trend_table(_tables(), "dispute_rate"), "weekly")
 
