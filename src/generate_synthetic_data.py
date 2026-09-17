@@ -43,7 +43,7 @@ class MerchantTemplate:
 MERCHANTS = (
     MerchantTemplate(
         "grocery",
-        ("FRESH MART", "MARKET BASKET", "CITY GROCERY", "HARVEST FOODS", "GREEN AISLE"),
+        ("FRESH MART", "CORNER PANTRY", "CITY GROCERY", "HARVEST FOODS", "GREEN AISLE"),
         52,
         0.45,
     ),
@@ -79,7 +79,7 @@ MERCHANTS = (
     ),
     MerchantTemplate(
         "health",
-        ("WELLCARE PHARMACY", "CITY CLINIC", "DENTAL PARTNERS", "VISION CENTER", "RX DIRECT"),
+        ("CIVIC PHARMACY", "CITY CLINIC", "DENTAL PARTNERS", "VISION CENTER", "RX DIRECT"),
         74,
         0.55,
     ),
