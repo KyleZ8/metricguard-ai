@@ -54,7 +54,6 @@ from metric_engine import (  # noqa: E402
     remediation_impact_table,
     resolve_periods,
     resolve_tables,
-    to_engine_metric_frame,
 )
 from quality_checks import (  # noqa: E402
     TABLE_ACCOUNTS,
@@ -709,57 +708,6 @@ def test_a_zero_denominator_yields_nan_rather_than_infinity():
     trend = monthly_trend_table(pd.concat([_toy_transactions(), empty_month], ignore_index=True))
 
     assert np.isfinite(trend["dispute_rate_raw"]).all()
-
-
-# ---------------------------------------------------------------------------
-# Compatibility with the original metricguard_engine
-# ---------------------------------------------------------------------------
-
-
-def test_engine_adapter_emits_the_schema_the_old_engine_expects():
-    frame = to_engine_metric_frame(_trend(), VARIANT_CORRECTED)
-
-    assert {"month", "numerator", "denominator", "metric_value", "metric_name", "deduped"}.issubset(
-        frame.columns
-    )
-    assert set(frame["deduped"]) == {True}
-
-
-def test_engine_adapter_output_runs_through_the_old_anomaly_detector():
-    from metricguard_engine import rolling_anomaly_flags
-
-    flagged = rolling_anomaly_flags(to_engine_metric_frame(_trend(), VARIANT_CORRECTED))
-
-    assert bool(flagged.set_index("month").loc[SPIKE_MONTH, "is_anomaly"])
-
-
-def test_engine_adapter_output_runs_through_the_old_period_result():
-    from metricguard_engine import metric_period_result
-
-    result = metric_period_result(
-        to_engine_metric_frame(_trend(), VARIANT_RAW), METRIC_NAME, SPIKE_MONTH, PRIOR_MONTH
-    )
-
-    assert result.current_numerator == 1_871
-    np.testing.assert_allclose(result.current_value, 1_871 / 105_834)
-
-
-def test_new_and_old_engines_agree_on_the_raw_dispute_rate():
-    from metricguard_engine import monthly_dispute_rate as legacy_monthly_dispute_rate
-
-    legacy = legacy_monthly_dispute_rate(_transactions(), deduped=False).set_index("month")
-    current = _trend().set_index("month")
-
-    np.testing.assert_allclose(
-        current["dispute_rate_raw"].to_numpy(dtype=float),
-        legacy["metric_value"].reindex(current.index).to_numpy(dtype=float),
-    )
-
-
-def test_engine_adapter_rejects_an_unknown_variant():
-    error = _raises(ValueError, to_engine_metric_frame, _trend(), "deduped")
-
-    assert "variant must be" in str(error)
 
 
 # ---------------------------------------------------------------------------

@@ -1178,34 +1178,6 @@ def build_metric_report(
     )
 
 
-# ---------------------------------------------------------------------------
-# Compatibility with the original metricguard_engine
-# ---------------------------------------------------------------------------
-
-
-def to_engine_metric_frame(trend: pd.DataFrame, variant: str = VARIANT_CORRECTED) -> pd.DataFrame:
-    """Reshape a trend frame into the schema ``metricguard_engine`` expects.
-
-    ``metricguard_engine.rolling_anomaly_flags`` and ``metric_period_result``
-    both read ``month`` / ``metric_value`` / ``numerator`` / ``denominator``.
-    Emitting that shape lets the existing anomaly detection run on these numbers
-    without editing the older module, which is left untouched on purpose.
-    """
-    if variant not in (VARIANT_RAW, VARIANT_CORRECTED):
-        raise ValueError(f"variant must be {VARIANT_RAW!r} or {VARIANT_CORRECTED!r}, got {variant!r}")
-
-    return pd.DataFrame(
-        {
-            "month": trend["month"],
-            "numerator": trend[f"disputed_purchases_{variant}"],
-            "denominator": trend[f"purchase_transactions_{variant}"],
-            "metric_value": trend[f"dispute_rate_{variant}"],
-            "metric_name": METRIC_NAME,
-            "deduped": variant == VARIANT_CORRECTED,
-        }
-    )
-
-
 if __name__ == "__main__":
     report = build_metric_report()
 

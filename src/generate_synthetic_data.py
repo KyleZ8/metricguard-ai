@@ -8,7 +8,6 @@ work in a credit-card risk/product analytics environment.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 import math
 import random
 import string
@@ -16,13 +15,15 @@ import string
 import numpy as np
 import pandas as pd
 
+from config import DATA_DIR
+
 
 SEED = 461
 N_ACCOUNTS = 12_000
 START_DATE = pd.Timestamp("2026-01-01")
 END_DATE = pd.Timestamp("2026-08-31")
 SPIKE_START = pd.Timestamp("2026-08-12")
-OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data" / "synthetic"
+OUTPUT_DIR = DATA_DIR
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,25 @@
+# Requires Python >=3.11 (pandas 3.x will not install on older interpreters;
+# `make setup` auto-detects a suitable interpreter or fails with this same
+# message — see .ai/PROJECT_SPEC.md A13). Project standard is Python 3.13,
+# used locally and in CI.
+#
+# Pinned to the versions the full test suite passed against on 2026-09-16
+# (377 passed, 2 failed before the A1 fix; 379 passed after A1; 369 passed
+# after A9 removed the legacy engine and its tests — see .ai/AUDIT.md and
+# .ai/HANDOFF.md CC2 entries). Regenerate with `pip freeze` after any
+# deliberate upgrade and re-run `make test`.
+
+pandas==3.0.5
+numpy==2.5.3
+altair==6.3.0
+streamlit==1.64.0
+scikit-learn==1.9.1
+pytest==9.1.1
+
+# Not pinned here (both are fully optional and gracefully degrade without
+# them — see src/text_theme_analysis.py and src/explanation_engine.py):
+#   sentence-transformers  — real embedding backend; hashing fallback is
+#                             used in CI/tests to avoid a model download.
+#   openai                 — only used when OPENAI_API_KEY is set; the
+#                             deterministic fallback needs no API key.
+# Install either manually if you want to exercise those paths locally.
