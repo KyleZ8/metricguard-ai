@@ -1,4 +1,4 @@
-.PHONY: setup data pipeline test test-fast app
+.PHONY: setup data data-demo pipeline test test-fast app
 
 VENV := .venv
 PYTHON := $(VENV)/bin/python
@@ -24,6 +24,12 @@ DATA_FILES := \
 	data/synthetic/complaints.csv \
 	data/synthetic/account_monthly_snapshot.csv \
 	data/synthetic/metric_definitions.csv
+
+SAMPLE_FILES := \
+	data/sample/accounts.parquet \
+	data/sample/transactions.parquet \
+	data/sample/complaints.parquet \
+	data/sample/account_monthly_snapshot.parquet
 
 setup:
 	@if [ -d "$(ICLOUD_DOCS)" ]; then \
@@ -90,7 +96,16 @@ setup:
 data: $(DATA_FILES)
 
 $(DATA_FILES): src/generate_synthetic_data.py
-	$(PYTHON) src/generate_synthetic_data.py
+	$(PYTHON) src/generate_synthetic_data.py --size full
+
+# Demo-size synthetic data (Parquet, data/sample/, amendment A10) is small
+# enough to commit and is used for CI / the deployed app. metric_definitions.csv
+# is shared with the full dataset (data/synthetic/) and is not written here --
+# see config.METRIC_DEFINITIONS_PATH. Only runs when a sample file is missing.
+data-demo: $(SAMPLE_FILES)
+
+$(SAMPLE_FILES): src/generate_synthetic_data.py
+	$(PYTHON) src/generate_synthetic_data.py --size demo
 
 pipeline: data
 	$(PYTHON) src/run_pipeline.py

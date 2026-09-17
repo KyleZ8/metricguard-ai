@@ -428,6 +428,39 @@ def test_accepted_values_ignores_nulls_so_completeness_is_not_double_counted():
     assert row["affected_rows"] == 0
 
 
+def test_accepted_values_ignores_blank_strings_so_completeness_is_not_double_counted():
+    tables = {
+        TABLE_TRANSACTIONS: pd.DataFrame(
+            {
+                "transaction_type": ["purchase", "payment", "fee"],
+                "channel": ["mobile", "web", "card_present"],
+                "merchant_category": ["", "   ", np.nan],
+            }
+        ),
+        TABLE_ACCOUNTS: pd.DataFrame(
+            {
+                "fico_band": [">660", "<=660"],
+                "product_type": ["cash_rewards", "student_card"],
+            }
+        ),
+        TABLE_COMPLAINTS: pd.DataFrame(
+            {
+                "issue": [
+                    "Problem with a purchase shown on your statement",
+                    "Fees or interest",
+                ]
+            }
+        ),
+    }
+
+    row = _find(
+        check_accepted_values(tables), f"accepted_values__{TABLE_TRANSACTIONS}__merchant_category"
+    )
+
+    assert row["status"] == STATUS_PASS
+    assert row["affected_rows"] == 0
+
+
 # ---------------------------------------------------------------------------
 # 6. Referential integrity
 # ---------------------------------------------------------------------------

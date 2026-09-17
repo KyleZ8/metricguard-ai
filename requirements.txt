@@ -15,6 +15,7 @@ altair==6.3.0
 streamlit==1.64.0
 scikit-learn==1.9.1
 pytest==9.1.1
+pyarrow==25.0.1  # Parquet read/write for the demo-size dataset (data/sample/, amendment A10)
 
 # Not pinned here (both are fully optional and gracefully degrade without
 # them — see src/text_theme_analysis.py and src/explanation_engine.py):

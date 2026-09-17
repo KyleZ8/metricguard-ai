@@ -24,7 +24,7 @@ from pathlib import Path
 import pandas as pd
 
 from action_engine import build_action_plan
-from config import OUTPUT_DIR
+from config import ACTIVE_DATA_DIR, DATASET_SIZE, OUTPUT_DIR
 from driver_analysis import build_driver_report
 from explanation_engine import build_evidence_packet, explain
 from metric_engine import build_finance_metric_report, build_metric_report
@@ -142,6 +142,8 @@ def run_pipeline(output_dir: Path = OUTPUT_DIR) -> dict[str, object]:
     top_driver = driver_report.top_count_drivers.iloc[0]
 
     return {
+        "dataset_size": DATASET_SIZE,
+        "dataset_dir": str(ACTIVE_DATA_DIR),
         "current_period": metric_report.current_period,
         "previous_period": metric_report.previous_period,
         "raw_previous_value": float(comparison.loc["raw", "previous_value"]),
@@ -175,6 +177,7 @@ if __name__ == "__main__":
     facts = run_pipeline()
 
     print(f"MetricGuard AI pipeline — {facts['current_period']} vs {facts['previous_period']}")
+    print(f"Dataset: {facts['dataset_size']} ({facts['dataset_dir']})")
     print("=" * 100)
     print(
         f"Raw dispute rate:       {facts['raw_previous_value']:.4%} -> "

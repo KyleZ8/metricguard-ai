@@ -407,6 +407,38 @@ def test_complaint_fact_table_joins_account_segments():
         assert facts[column].notna().all()
 
 
+def test_complaint_fact_table_labels_blank_segment_values_as_missing():
+    tables = {
+        TABLE_ACCOUNTS: pd.DataFrame(
+            {
+                "account_id": ["A1"],
+                "fico_band": [">660"],
+                "customer_segment": ["affluent"],
+                "product_type": ["travel_rewards"],
+                "region": ["West"],
+            }
+        ),
+        TABLE_COMPLAINTS: pd.DataFrame(
+            {
+                "complaint_id": ["C1"],
+                "account_id": ["A1"],
+                "date_received": ["2026-08-15"],
+                "product": ["Credit card"],
+                "issue": ["Problem with a purchase shown on your statement"],
+                "complaint_narrative": ["I was charged twice."],
+                "submitted_via": ["Web"],
+                "merchant_category": ["   "],
+                "channel": [""],
+            }
+        ),
+    }
+
+    facts = complaint_fact_table(tables)
+
+    assert facts.loc[0, "merchant_category"] == "__missing__"
+    assert facts.loc[0, "channel"] == "__missing__"
+
+
 def test_complaint_months_are_well_formed():
     months = _facts()["month"]
 

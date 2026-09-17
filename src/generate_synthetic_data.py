@@ -1,4 +1,4 @@
-"""Generate synthetic Capital One-style KPI investigation data.
+"""Generate synthetic data for a fictional card issuer's KPI investigation.
 
 The data is fake, but the table shapes, metric definitions, segment fields,
 complaint fields, and pipeline defects are designed to resemble real analyst
@@ -7,6 +7,7 @@ work in a credit-card risk/product analytics environment.
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 import math
 import random
@@ -15,15 +16,20 @@ import string
 import numpy as np
 import pandas as pd
 
-from config import DATA_DIR
+from config import FULL_DATA_DIR, SAMPLE_DATA_DIR
 
 
 SEED = 461
 N_ACCOUNTS = 12_000
+# Demo size (amendment A10): small enough that all of data/sample/ stays
+# under 10 MB as Parquet. Chosen empirically -- see the --size demo path in
+# main() -- and kept a module-level constant so it's visible next to
+# N_ACCOUNTS rather than buried in argument-parsing code.
+DEMO_N_ACCOUNTS = 2_200
 START_DATE = pd.Timestamp("2026-01-01")
 END_DATE = pd.Timestamp("2026-08-31")
 SPIKE_START = pd.Timestamp("2026-08-12")
-OUTPUT_DIR = DATA_DIR
+OUTPUT_DIR = FULL_DATA_DIR
 
 
 @dataclass(frozen=True)
@@ -37,13 +43,13 @@ class MerchantTemplate:
 MERCHANTS = (
     MerchantTemplate(
         "grocery",
-        ("FRESH MART", "MARKET BASKET", "CITY GROCERY", "HARVEST FOODS", "GREEN AISLE"),
+        ("FRESH MART", "CORNER PANTRY", "CITY GROCERY", "HARVEST FOODS", "GREEN AISLE"),
         52,
         0.45,
     ),
     MerchantTemplate(
         "restaurant",
-        ("TST* NORTH GRILL", "SQ *RIVER CAFE", "URBAN NOODLE", "LINDEN COFFEE", "BAY TACOS"),
+        ("DINEX* NORTH GRILL", "POSX *RIVER CAFE", "URBAN NOODLE", "LINDEN COFFEE", "BAY TACOS"),
         31,
         0.55,
     ),
@@ -55,7 +61,7 @@ MERCHANTS = (
     ),
     MerchantTemplate(
         "online_retail",
-        ("AMZN MKTP US", "SHOPMART ONLINE", "PAYPAL *CITYGEAR", "WEBSTORE 9A", "MARKETPLACE PAY"),
+        ("OMNIMART US", "SHOPMART ONLINE", "QUIKPAY *CITYGEAR", "WEBSTORE 9A", "MARKETPLACE PAY"),
         68,
         0.65,
     ),
@@ -73,7 +79,7 @@ MERCHANTS = (
     ),
     MerchantTemplate(
         "health",
-        ("WELLCARE PHARMACY", "CITY CLINIC", "DENTAL PARTNERS", "VISION CENTER", "RX DIRECT"),
+        ("CIVIC PHARMACY", "CITY CLINIC", "DENTAL PARTNERS", "VISION CENTER", "RX DIRECT"),
         74,
         0.55,
     ),
@@ -243,7 +249,7 @@ def merchant_descriptor(template: MerchantTemplate, rng: np.random.Generator) ->
     if style == "terminal":
         return f"{name} {rng.integers(1000, 9999)}"
     if style == "processor":
-        return f"SQ *{name[:15]} {rng.integers(100, 999)}"
+        return f"POSX *{name[:15]} {rng.integers(100, 999)}"
     if style == "web":
         return f"{name}.COM*{random_code(rng, 5)}"
     return name
@@ -984,7 +990,28 @@ def write_ground_truth(accounts: pd.DataFrame, snapshots: pd.DataFrame, transact
     (OUTPUT_DIR / "GROUND_TRUTH.md").write_text("\n".join(text), encoding="utf-8")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--size",
+        choices=("demo", "full"),
+        default="full",
+        help=(
+            "full (default): the complete dataset, CSV, to data/synthetic/ "
+            "(gitignored). demo: a small deterministic subset, Parquet, to "
+            "data/sample/, under 10 MB total, committed for CI/demo use."
+        ),
+    )
+    args = parser.parse_args(argv)
+
+    global N_ACCOUNTS, OUTPUT_DIR
+    if args.size == "demo":
+        N_ACCOUNTS = DEMO_N_ACCOUNTS
+        OUTPUT_DIR = SAMPLE_DATA_DIR
+    else:
+        N_ACCOUNTS = 12_000
+        OUTPUT_DIR = FULL_DATA_DIR
+
     random.seed(SEED)
     rng = np.random.default_rng(SEED)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -993,21 +1020,30 @@ def main() -> None:
     snapshots = generate_monthly_snapshots(accounts, rng)
     transactions = generate_transactions(accounts, rng)
     complaints = generate_complaints(accounts, transactions, rng)
-    definitions = metric_definitions()
 
-    accounts.to_csv(OUTPUT_DIR / "accounts.csv", index=False)
-    snapshots.to_csv(OUTPUT_DIR / "account_monthly_snapshot.csv", index=False)
-    transactions.to_csv(OUTPUT_DIR / "transactions.csv", index=False)
-    complaints.to_csv(OUTPUT_DIR / "complaints.csv", index=False)
-    definitions.to_csv(OUTPUT_DIR / "metric_definitions.csv", index=False)
-    write_ground_truth(accounts, snapshots, transactions, complaints)
+    if args.size == "demo":
+        # metric_definitions.csv and GROUND_TRUTH.md describe the full
+        # dataset and are shared across both sizes (amendment A10) --
+        # never duplicated into data/sample/ or overwritten with
+        # demo-scale numbers here.
+        accounts.to_parquet(OUTPUT_DIR / "accounts.parquet", index=False)
+        snapshots.to_parquet(OUTPUT_DIR / "account_monthly_snapshot.parquet", index=False)
+        transactions.to_parquet(OUTPUT_DIR / "transactions.parquet", index=False)
+        complaints.to_parquet(OUTPUT_DIR / "complaints.parquet", index=False)
+    else:
+        definitions = metric_definitions()
+        accounts.to_csv(OUTPUT_DIR / "accounts.csv", index=False)
+        snapshots.to_csv(OUTPUT_DIR / "account_monthly_snapshot.csv", index=False)
+        transactions.to_csv(OUTPUT_DIR / "transactions.csv", index=False)
+        complaints.to_csv(OUTPUT_DIR / "complaints.csv", index=False)
+        definitions.to_csv(OUTPUT_DIR / "metric_definitions.csv", index=False)
+        write_ground_truth(accounts, snapshots, transactions, complaints)
 
-    print("Synthetic data written to", OUTPUT_DIR)
+    print(f"Synthetic data ({args.size}) written to", OUTPUT_DIR)
     print("accounts:", f"{len(accounts):,}")
     print("account_monthly_snapshot:", f"{len(snapshots):,}")
     print("transactions:", f"{len(transactions):,}")
     print("complaints:", f"{len(complaints):,}")
-    print("metric_definitions:", f"{len(definitions):,}")
 
 
 if __name__ == "__main__":
