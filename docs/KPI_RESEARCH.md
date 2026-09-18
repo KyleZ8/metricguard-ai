@@ -1,12 +1,12 @@
 # KPI Research Notes
 
-This file records authentic KPI ideas for a Capital One Senior Data Analyst-focused project.
+This file records authentic KPI ideas for a Senior-Data-Analyst-focused project.
 
 Research date: September 5, 2026
 
-## Role Signals From Capital One SDA Postings
+## Role Signals From Senior Data Analyst Postings
 
-Capital One describes Senior Data Analyst work around three broad categories:
+Target-role postings describe Senior Data Analyst work around three broad categories:
 
 - innovation
 - business intelligence
@@ -36,13 +36,13 @@ Implication for this project:
 
 > The project should not only show modeling. It should show metric ownership, BI thinking, data quality, governance, and business explanation.
 
-## Public Capital One / Credit-Card Metrics
+## Public Credit-Card Metrics
 
-Capital One's public earnings materials and SEC credit metric disclosures use several authentic credit-card and banking KPIs.
+Public card issuers' earnings materials and SEC credit metric disclosures use several authentic credit-card and banking KPIs.
 
 ### Net Charge-Off Rate
 
-Definition from Capital One SEC monthly credit metric disclosure:
+Definition adapted from public card-issuer SEC monthly credit metric disclosures:
 
 > Net charge-off rate is calculated by dividing annualized net charge-offs by average loans held for investment for the specified loan category.
 
@@ -65,7 +65,7 @@ charge_off_rate = charged_off_balance / average_balance
 
 ### 30+ Day Delinquency Rate
 
-Definition from Capital One SEC monthly credit metric disclosure:
+Definition adapted from public card-issuer SEC monthly credit metric disclosures:
 
 > 30+ day performing delinquency rate is calculated by dividing 30+ day performing delinquent loans by period-end loans held for investment for the specified loan category.
 
@@ -93,7 +93,7 @@ delinquency_rate_30dpd = balance_30plus_dpd / period_end_balance
 
 ### Purchase Volume
 
-Capital One reports domestic card purchase volume as a selected performance metric in its credit-card segment.
+Public card issuers report domestic card purchase volume as a selected performance metric in its credit-card segment.
 
 Source:
 
@@ -111,7 +111,7 @@ purchase_volume = sum(purchase_amount)
 
 ### Period-End Loans Held For Investment
 
-Capital One reports period-end loans held for investment in segment-level summaries.
+Public card issuers report period-end loans held for investment in segment-level summaries.
 
 Source:
 
@@ -129,7 +129,7 @@ period_end_balance = sum(statement_balance)
 
 ### Average Loans Held For Investment
 
-Capital One uses average loans held for investment as the denominator for net charge-off rate.
+Public card issuers use average loans held for investment as the denominator for net charge-off rate.
 
 Source:
 
@@ -143,7 +143,7 @@ average_balance = mean(statement_balance)
 
 ### Total Net Revenue Margin
 
-Capital One reports total net revenue margin in domestic card selected performance metrics.
+Public card issuers report total net revenue margin in domestic card selected performance metrics.
 
 Source:
 
@@ -160,7 +160,7 @@ Project use:
 
 ### Refreshed FICO Mix
 
-Capital One reports refreshed FICO score mix for domestic card, including above/below 660 groups.
+Public card issuers report refreshed FICO score mix for domestic card, including above/below 660 groups.
 
 Source:
 
@@ -290,7 +290,7 @@ The first demo should use these KPIs:
 
 4. `delinquency_rate_30dpd`
    - Authentic credit-risk KPI.
-   - Strong Capital One relevance.
+   - Strong target-role relevance.
 
 5. `purchase_volume`
    - Business activity context.

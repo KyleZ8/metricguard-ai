@@ -8,11 +8,11 @@ MetricGuard AI
 
 Primary target role:
 
-> Senior Data Analyst at Capital One
+> Senior Data Analyst at a fictional card issuer
 
 Primary user inside the product:
 
-> A Capital One-style data analyst who owns KPI monitoring, dashboard reliability, risk/product reporting, or customer operations analytics for a credit-card business.
+> A fictional-card-issuer-style data analyst who owns KPI monitoring, dashboard reliability, risk/product reporting, or customer operations analytics for a credit-card business.
 
 Secondary users:
 
@@ -24,7 +24,7 @@ Secondary users:
 
 ## Job-Relevant Motivation
 
-Capital One Senior Data Analyst postings emphasize:
+Target-role postings emphasize:
 
 - solving complex business and product challenges
 - product analytics
@@ -39,8 +39,8 @@ Capital One Senior Data Analyst postings emphasize:
 
 Sources:
 
-- Capital One Senior Data Analyst - Analytics & Transformation: https://www.capitalonecareers.com/job/mclean/senior-data-analyst-analytics-and-transformation/1732/98634904320
-- Capital One Senior Data Analyst - Risk Product Data: https://www.capitalonecareers.com/job/mclean/senior-data-analyst-risk-product-data/1732/98246876496
+- a fictional card issuer's Senior Data Analyst - Analytics & Transformation: https://www.capitalonecareers.com/job/mclean/senior-data-analyst-analytics-and-transformation/1732/98634904320
+- a fictional card issuer's Senior Data Analyst - Risk Product Data: https://www.capitalonecareers.com/job/mclean/senior-data-analyst-risk-product-data/1732/98246876496
 
 ## Product Problem
 
@@ -64,7 +64,7 @@ MetricGuard AI helps analysts determine whether a KPI movement is real or caused
 
 ## Demo Scenario
 
-The first demo will focus on a Capital One-style credit-card risk and operations use case.
+The first demo will focus on a fictional-card-issuer-style credit-card risk and operations use case.
 
 Scenario:
 
@@ -184,7 +184,7 @@ This is especially important for financial services, where numbers must be groun
 
 ## Growth And Product Adaptability
 
-The project is Capital One-first, but the engine should generalize.
+The project is a fictional card issuer-first, but the engine should generalize.
 
 The core workflow:
 

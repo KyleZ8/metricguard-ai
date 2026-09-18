@@ -2,7 +2,7 @@
 
 MetricGuard AI is a financial-services analytics dashboard that helps analysts decide whether a KPI movement is real, caused by data quality, or both.
 
-The project is designed for a Capital One-style Senior Data Analyst use case: a credit-card business sees a monthly KPI spike, and the analyst needs to validate the data, correct the metric, identify drivers, connect customer complaints, prioritize action, and produce a manager-ready explanation.
+The project is designed for a fictional card issuer's Senior Data Analyst use case: a credit-card business sees a monthly KPI spike, and the analyst needs to validate the data, correct the metric, identify drivers, connect customer complaints, prioritize action, and produce a manager-ready explanation.
 
 ## Why This Project Exists
 

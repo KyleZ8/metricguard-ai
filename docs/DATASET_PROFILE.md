@@ -54,7 +54,7 @@ The synthetic data includes multiple real-world characteristics that an analyst 
 - CFPB-style complaint fields
 - metric definitions with numerator, denominator, owner, grain, and limitations
 
-## Capital One-Style KPI Story
+## a fictional card issuer-Style KPI Story
 
 The first demo focuses on a credit-card dispute-rate alert.
 
@@ -132,7 +132,7 @@ This creates a strong demo because the tool can say:
 
 ## Data Governance Story
 
-`metric_definitions.csv` supports the Capital One SDA story around business definitions, metric ownership, metadata, and lineage.
+`metric_definitions.csv` supports the a fictional card issuer's Senior Data Analyst story around business definitions, metric ownership, metadata, and lineage.
 
 Each metric includes:
 
