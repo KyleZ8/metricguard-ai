@@ -19,17 +19,16 @@ Logic tests that do not need real data use a hand-built packet instead.
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
 import hashlib
 import json
 import os
 import sys
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -37,18 +36,16 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 # Neutralised before importing the engine so no code path can pick up a real key.
 os.environ.pop("OPENAI_API_KEY", None)
 
+from driver_analysis import build_driver_report  # noqa: E402
 from explanation_engine import (  # noqa: E402
-    DEFAULT_MATERIAL_INTEGER_THRESHOLD,
     DEFAULT_MODEL,
     DEFAULT_MODEL_ENV_VAR,
     EXPLANATION_FIELDS,
     EXPLANATION_JSON_SCHEMA,
     GENERATOR_DETERMINISTIC,
     STANDING_LIMITATIONS,
-    SYSTEM_PROMPT,
     EvidencePacket,
     Explanation,
-    NumberValidation,
     SupportedNumbers,
     build_deterministic_explanation,
     build_evidence_packet,
@@ -58,11 +55,9 @@ from explanation_engine import (  # noqa: E402
     resolve_model,
     validate_numbers,
 )
-from driver_analysis import build_driver_report  # noqa: E402
 from metric_engine import build_metric_report  # noqa: E402
 from quality_checks import STATUS_FAIL, STATUS_PASS, load_tables, run_quality_checks  # noqa: E402
 from text_theme_analysis import HashingEmbedder, build_text_theme_report  # noqa: E402
-
 
 SPIKE_MONTH = "2026-08"
 PRIOR_MONTH = "2026-07"
@@ -243,7 +238,7 @@ class _FakeResponse:
 
 
 class _FakeResponses:
-    def __init__(self, owner: "FakeOpenAIClient") -> None:
+    def __init__(self, owner: FakeOpenAIClient) -> None:
         self._owner = owner
 
     def create(self, **kwargs: object) -> _FakeResponse:
@@ -329,7 +324,9 @@ def test_evidence_packet_matches_the_underlying_reports():
 
     assert metric["raw_current_disputed"] == int(impact["raw_disputed_count"])
     assert metric["duplicate_rows_removed"] == int(impact["duplicate_disputed_rows_removed"])
-    np.testing.assert_allclose(metric["raw_current_rate"], float(impact["raw_dispute_rate"]), atol=1e-6)
+    np.testing.assert_allclose(
+        metric["raw_current_rate"], float(impact["raw_dispute_rate"]), atol=1e-6
+    )
 
 
 @pytest.mark.slow
@@ -811,18 +808,14 @@ def test_raise_mode_refuses_an_ungrounded_explanation():
     payload["what_changed"] = "Roughly 7,777 disputes were filed."
     client = FakeOpenAIClient(payload)
 
-    error = _raises(
-        ValueError, explain, _toy_packet(), client, None, None, "raise"
-    )
+    error = _raises(ValueError, explain, _toy_packet(), client, None, None, "raise")
 
     assert "7,777" in str(error)
 
 
 @pytest.mark.slow
 def test_explain_rejects_an_unknown_unsupported_number_policy():
-    error = _raises(
-        ValueError, explain, _toy_packet(), None, None, False, "ignore-everything"
-    )
+    error = _raises(ValueError, explain, _toy_packet(), None, None, False, "ignore-everything")
 
     assert "on_unsupported_numbers" in str(error)
 

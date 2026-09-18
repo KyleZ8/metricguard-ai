@@ -37,9 +37,9 @@ Run directly to print all three::
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -55,7 +55,6 @@ from quality_checks import (
     TABLE_TRANSACTIONS,
     load_tables,
 )
-
 
 METRIC_NAME = "dispute_rate"
 PURCHASE_TRANSACTION_TYPE = "purchase"
@@ -238,7 +237,14 @@ FINANCE_METRIC_SPECS: dict[str, FinanceMetricSpec] = {
         denominator_label="active accounts",
         metric_family="complaint_volume",
         higher_is_bad=True,
-        segment_fields=("issue", "submitted_via", "product_type", "customer_segment", "fico_band", "region"),
+        segment_fields=(
+            "issue",
+            "submitted_via",
+            "product_type",
+            "customer_segment",
+            "fico_band",
+            "region",
+        ),
     ),
     "fee_complaint_share": FinanceMetricSpec(
         metric_name="fee_complaint_share",
@@ -248,7 +254,14 @@ FINANCE_METRIC_SPECS: dict[str, FinanceMetricSpec] = {
         denominator_label="complaints",
         metric_family="complaint_share",
         higher_is_bad=True,
-        segment_fields=("issue", "submitted_via", "product_type", "customer_segment", "fico_band", "region"),
+        segment_fields=(
+            "issue",
+            "submitted_via",
+            "product_type",
+            "customer_segment",
+            "fico_band",
+            "region",
+        ),
     ),
 }
 
@@ -349,7 +362,9 @@ def _safe_scalar_rate(numerator: float, denominator: float) -> float:
 def _require_period(trend: pd.DataFrame, period: str, label: str) -> None:
     if period not in set(trend["month"]):
         available = ", ".join(trend["month"].tolist())
-        raise KeyError(f"{label} {period!r} is not in the monthly trend. Available months: {available}")
+        raise KeyError(
+            f"{label} {period!r} is not in the monthly trend. Available months: {available}"
+        )
 
 
 def _period_width(period_grain: str) -> int:
@@ -383,7 +398,9 @@ def rolling_period_windows(months: tuple[str, ...] | list[str], period_grain: st
                 "period_months": tuple(window),
             }
         )
-    return pd.DataFrame(rows, columns=["month", "period_grain", "start_month", "end_month", "period_months"])
+    return pd.DataFrame(
+        rows, columns=["month", "period_grain", "start_month", "end_month", "period_months"]
+    )
 
 
 def period_months_from_trend(trend: pd.DataFrame, period: str) -> tuple[str, ...]:
@@ -519,12 +536,18 @@ def _snapshot_metric_source(
             if field in accounts.columns and field not in snapshots.columns
         ]
         if join_fields:
-            snapshots = snapshots.merge(accounts[["account_id"] + join_fields], on="account_id", how="left")
+            snapshots = snapshots.merge(
+                accounts[["account_id"] + join_fields], on="account_id", how="left"
+            )
 
     if spec.metric_name == "delinquency_rate_30dpd_balance":
-        numerator = lambda frame: frame["statement_balance"] * frame["is_30dpd"]
+        def numerator(frame: pd.DataFrame) -> pd.Series:
+            return frame["statement_balance"] * frame["is_30dpd"]
+
     elif spec.metric_name == "net_charge_off_rate_proxy":
-        numerator = lambda frame: frame["charge_off_balance"] * 12.0
+        def numerator(frame: pd.DataFrame) -> pd.Series:
+            return frame["charge_off_balance"] * 12.0
+
     else:
         raise ValueError(f"{spec.metric_name} is not a snapshot metric")
     return snapshots, numerator, "statement_balance"
@@ -565,11 +588,13 @@ def _complaint_segment_source(
     complaints = tables[TABLE_COMPLAINTS].copy()
     complaints["month"] = _month_key(complaints, "date_received")
     if spec.metric_name == "fee_complaint_share":
-        numerator: str | Callable[[pd.DataFrame], pd.Series] = (
-            lambda frame: frame["issue"].eq("Fees or interest").astype(int)
-        )
+        def numerator(frame: pd.DataFrame) -> pd.Series:
+            return frame["issue"].eq("Fees or interest").astype(int)
+
     else:
-        numerator = lambda frame: pd.Series(1, index=frame.index)
+        def numerator(frame: pd.DataFrame) -> pd.Series:
+            return pd.Series(1, index=frame.index)
+
     return complaints, numerator, None
 
 
@@ -577,7 +602,11 @@ def _metric_source(
     tables: Mapping[str, pd.DataFrame],
     spec: FinanceMetricSpec,
     corrected: bool = True,
-) -> tuple[pd.DataFrame, str | Callable[[pd.DataFrame], pd.Series], str | Callable[[pd.DataFrame], pd.Series] | None]:
+) -> tuple[
+    pd.DataFrame,
+    str | Callable[[pd.DataFrame], pd.Series],
+    str | Callable[[pd.DataFrame], pd.Series] | None,
+]:
     if spec.metric_family.startswith("transaction"):
         return _transaction_metric_source(tables, spec, corrected)
     if spec.metric_family.startswith("snapshot"):
@@ -626,30 +655,34 @@ def generic_monthly_trend_table(
         how="outer",
         suffixes=("_raw", "_corrected"),
     ).sort_values("month")
-    for column in ("numerator_raw", "denominator_raw", "numerator_corrected", "denominator_corrected"):
+    for column in (
+        "numerator_raw",
+        "denominator_raw",
+        "numerator_corrected",
+        "denominator_corrected",
+    ):
         trend[column] = trend[column].fillna(0)
     trend["raw_value"] = _safe_rate(trend["numerator_raw"], trend["denominator_raw"])
     trend["corrected_value"] = _safe_rate(
         trend["numerator_corrected"], trend["denominator_corrected"]
     )
     trend["duplicate_numerator_removed"] = trend["numerator_raw"] - trend["numerator_corrected"]
-    trend["duplicate_denominator_removed"] = trend["denominator_raw"] - trend["denominator_corrected"]
+    trend["duplicate_denominator_removed"] = (
+        trend["denominator_raw"] - trend["denominator_corrected"]
+    )
     trend["value_difference"] = trend["raw_value"] - trend["corrected_value"]
     trend["period_grain"] = PERIOD_GRAIN_MONTHLY
     trend["start_month"] = trend["month"]
     trend["end_month"] = trend["month"]
     trend["period_months"] = trend["month"].map(lambda month: (str(month),))
-    return (
-        trend.rename(
-            columns={
-                "numerator_raw": "raw_numerator",
-                "denominator_raw": "raw_denominator",
-                "numerator_corrected": "corrected_numerator",
-                "denominator_corrected": "corrected_denominator",
-            }
-        )[list(GENERIC_MONTHLY_TREND_COLUMNS)]
-        .reset_index(drop=True)
-    )
+    return trend.rename(
+        columns={
+            "numerator_raw": "raw_numerator",
+            "denominator_raw": "raw_denominator",
+            "numerator_corrected": "corrected_numerator",
+            "denominator_corrected": "corrected_denominator",
+        }
+    )[list(GENERIC_MONTHLY_TREND_COLUMNS)].reset_index(drop=True)
 
 
 def aggregate_metric_trend(
@@ -793,7 +826,9 @@ def generic_segment_driver_table(
         )
         if grouped.empty:
             continue
-        pivot = grouped.set_index([field, "_metric_period"])[["numerator", "denominator", "metric_value"]].unstack("_metric_period")
+        pivot = grouped.set_index([field, "_metric_period"])[
+            ["numerator", "denominator", "metric_value"]
+        ].unstack("_metric_period")
         for measure in ("numerator", "denominator", "metric_value"):
             for period in (resolved_previous, resolved_current):
                 if (measure, period) not in pivot.columns:
@@ -833,7 +868,9 @@ def generic_segment_driver_table(
         return pd.DataFrame(columns=list(GENERIC_SEGMENT_DRIVER_COLUMNS))
     return (
         pd.concat(frames, ignore_index=True)[list(GENERIC_SEGMENT_DRIVER_COLUMNS)]
-        .sort_values(["numerator_change", "absolute_change", "segment_name"], ascending=[False, False, True])
+        .sort_values(
+            ["numerator_change", "absolute_change", "segment_name"], ascending=[False, False, True]
+        )
         .reset_index(drop=True)
     )
 

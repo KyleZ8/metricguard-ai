@@ -22,7 +22,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-
 ACTION_COLUMNS = (
     "priority",
     "recommendation",
@@ -146,8 +145,7 @@ def _best_generic_driver(report: Any) -> pd.Series | None:
     if drivers is None or drivers.empty:
         return None
     candidates = drivers[
-        drivers["numerator_change"].gt(0)
-        & ~drivers["min_denominator_flag"].astype(bool)
+        drivers["numerator_change"].gt(0) & ~drivers["min_denominator_flag"].astype(bool)
     ].copy()
     if candidates.empty:
         return None
@@ -165,8 +163,7 @@ def _best_interaction_driver(driver_report: Any | None) -> pd.Series | None:
     if interaction is None or interaction.empty:
         return None
     candidates = interaction[
-        interaction["disputed_change"].gt(0)
-        & ~interaction["min_denominator_flag"].astype(bool)
+        interaction["disputed_change"].gt(0) & ~interaction["min_denominator_flag"].astype(bool)
     ].copy()
     if candidates.empty:
         return None
@@ -218,7 +215,11 @@ def _scorecard(
     theme: pd.Series | None,
 ) -> pd.DataFrame:
     """Transparent evidence-strength components behind business actions."""
-    metric_score = 1.0 if corrected_change >= MIN_MATERIAL_RELATIVE_INCREASE else (0.55 if corrected_change > 0 else 0.0)
+    metric_score = (
+        1.0
+        if corrected_change >= MIN_MATERIAL_RELATIVE_INCREASE
+        else (0.55 if corrected_change > 0 else 0.0)
+    )
     driver_share = (
         _to_float(top_driver.get("contribution_share_of_positive_change"))
         if top_driver is not None
@@ -230,10 +231,14 @@ def _scorecard(
 
     blocking_quality = int(
         quality_findings[
-            quality_findings["check_name"].astype(str).str.contains("duplicate|referential|completeness|drift", case=False, regex=True)
+            quality_findings["check_name"]
+            .astype(str)
+            .str.contains("duplicate|referential|completeness|drift", case=False, regex=True)
         ].shape[0]
     )
-    quality_score = max(0.25, 1.0 - min(blocking_quality, 3) * 0.20) if not quality_findings.empty else 1.0
+    quality_score = (
+        max(0.25, 1.0 - min(blocking_quality, 3) * 0.20) if not quality_findings.empty else 1.0
+    )
 
     theme_change = _to_float(theme.get("complaint_change")) if theme is not None else 0.0
     theme_similarity = _to_float(theme.get("avg_similarity")) if theme is not None else 0.0
@@ -396,7 +401,9 @@ def build_action_plan(
         segment = f"{top_driver['segment_name']} = {top_driver['segment_value']}"
         avoidable = _segment_avoidable_events(top_driver)
         impact_pp = avoidable / current_denominator if current_denominator else 0.0
-        impact_score = min(1.0, max(0.30, _to_float(top_driver["contribution_share_of_positive_change"])))
+        impact_score = min(
+            1.0, max(0.30, _to_float(top_driver["contribution_share_of_positive_change"]))
+        )
         rows.append(
             _recommendation_row(
                 recommendation=f"Investigate the leading {finance_metric_report.display_name.lower()} driver",
@@ -421,7 +428,9 @@ def build_action_plan(
         target = f"{interaction['segment_a_value']} x {interaction['segment_b_value']}"
         avoidable = _interaction_avoidable_events(interaction)
         impact_pp = avoidable / current_denominator if current_denominator else 0.0
-        impact_score = min(1.0, max(0.35, _to_float(interaction["contribution_share_of_positive_dispute_change"])))
+        impact_score = min(
+            1.0, max(0.35, _to_float(interaction["contribution_share_of_positive_dispute_change"]))
+        )
         rows.append(
             _recommendation_row(
                 recommendation="Pull case-level review for the top interaction cell",
@@ -517,7 +526,9 @@ def build_action_plan(
     recommendations = recommendations.reset_index(drop=True)
 
     scenario_candidates = recommendations[
-        recommendations["action_type"].isin(["Business investigation", "Case review", "Customer experience"])
+        recommendations["action_type"].isin(
+            ["Business investigation", "Case review", "Customer experience"]
+        )
         & recommendations["estimated_avoidable_events"].gt(0)
     ]
     scenario_source = (
@@ -533,7 +544,9 @@ def build_action_plan(
         if scenario_source is not None
         else 0.0
     )
-    scenario_analysis = _scenario_table(finance_metric_report, str(scenario_target), scenario_events)
+    scenario_analysis = _scenario_table(
+        finance_metric_report, str(scenario_target), scenario_events
+    )
 
     if has_duplicate_remediation and material_increase:
         decision_summary = (
@@ -541,19 +554,15 @@ def build_action_plan(
             "The reported movement is partly inflated, but the corrected KPI still increased materially."
         )
     elif has_duplicate_remediation:
-        decision_summary = (
-            "Prioritise data-quality remediation. After correction, the selected KPI does not justify a business spike response."
-        )
+        decision_summary = "Prioritise data-quality remediation. After correction, the selected KPI does not justify a business spike response."
     elif material_increase:
-        decision_summary = (
-            "Open a targeted business investigation. The corrected KPI increased materially and no duplicate-event remediation explains it."
-        )
+        decision_summary = "Open a targeted business investigation. The corrected KPI increased materially and no duplicate-event remediation explains it."
     elif not data_contract_findings.empty:
-        decision_summary = (
-            "Do not open a KPI spike incident, but resolve the selected quality findings before relying on segment labels."
-        )
+        decision_summary = "Do not open a KPI spike incident, but resolve the selected quality findings before relying on segment labels."
     else:
-        decision_summary = "Monitor only. The selected corrected KPI movement does not clear the action threshold."
+        decision_summary = (
+            "Monitor only. The selected corrected KPI movement does not clear the action threshold."
+        )
 
     methodology = (
         "Quality gate: data defects and remediation are assessed before business recommendations.",

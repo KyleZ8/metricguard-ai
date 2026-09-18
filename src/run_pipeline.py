@@ -77,17 +77,25 @@ def run_pipeline(output_dir: Path = OUTPUT_DIR) -> dict[str, object]:
 
     # --- metric (raw vs. corrected dispute rate) ---------------------------
     _write_csv(metric_report.monthly_trend, output_dir / "metric_monthly_trend.csv", written)
-    _write_csv(metric_report.period_comparison, output_dir / "metric_period_comparison.csv", written)
-    _write_csv(metric_report.remediation_impact, output_dir / "metric_remediation_impact.csv", written)
+    _write_csv(
+        metric_report.period_comparison, output_dir / "metric_period_comparison.csv", written
+    )
+    _write_csv(
+        metric_report.remediation_impact, output_dir / "metric_remediation_impact.csv", written
+    )
 
     # --- data quality --------------------------------------------------------
     _write_csv(quality_report, output_dir / "quality_checks.csv", written)
 
     # --- drivers ---------------------------------------------------------------
     _write_csv(driver_report.segment_drivers, output_dir / "driver_segment_drivers.csv", written)
-    _write_csv(driver_report.top_count_drivers, output_dir / "driver_top_count_drivers.csv", written)
     _write_csv(
-        driver_report.top_rate_deterioration, output_dir / "driver_top_rate_deterioration.csv", written
+        driver_report.top_count_drivers, output_dir / "driver_top_count_drivers.csv", written
+    )
+    _write_csv(
+        driver_report.top_rate_deterioration,
+        output_dir / "driver_top_rate_deterioration.csv",
+        written,
     )
     _write_csv(
         driver_report.interaction_heatmap_data,
@@ -126,9 +134,7 @@ def run_pipeline(output_dir: Path = OUTPUT_DIR) -> dict[str, object]:
         f"# Action plan — {action_plan.display_name} "
         f"({action_plan.current_period} vs {action_plan.previous_period})\n\n"
         f"{action_plan.decision_summary}\n\n"
-        "## Methodology\n\n"
-        + "\n".join(f"- {step}" for step in action_plan.methodology)
-        + "\n"
+        "## Methodology\n\n" + "\n".join(f"- {step}" for step in action_plan.methodology) + "\n"
     )
     _write_markdown(action_plan_text, output_dir / "action_plan.md", written)
 

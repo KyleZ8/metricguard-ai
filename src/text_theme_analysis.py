@@ -52,16 +52,15 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
 
 from metric_engine import resolve_periods, resolve_tables
 from quality_checks import DATA_DIR, TABLE_ACCOUNTS, TABLE_COMPLAINTS, _is_blank
-
 
 try:  # Optional: only needed for the emerging-theme clustering stretch.
     from sklearn.cluster import KMeans
@@ -317,9 +316,7 @@ def resolve_embedder(embedder: Embedder | None = None) -> tuple[Embedder, str]:
     is used only if it cannot be loaded.
     """
     if embedder is not None:
-        name = getattr(embedder, "name", None) or getattr(
-            type(embedder), "__name__", "injected"
-        )
+        name = getattr(embedder, "name", None) or getattr(type(embedder), "__name__", "injected")
         return embedder, str(name)
 
     if SENTENCE_TRANSFORMERS_AVAILABLE:
@@ -345,9 +342,10 @@ def _l2_normalize(matrix: np.ndarray) -> np.ndarray:
 
 def cosine_similarity_matrix(left: np.ndarray, right: np.ndarray) -> np.ndarray:
     """Cosine similarity between every row of ``left`` and every row of ``right``."""
-    return _l2_normalize(np.asarray(left, dtype=np.float64)) @ _l2_normalize(
-        np.asarray(right, dtype=np.float64)
-    ).T
+    return (
+        _l2_normalize(np.asarray(left, dtype=np.float64))
+        @ _l2_normalize(np.asarray(right, dtype=np.float64)).T
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -366,7 +364,11 @@ def complaint_fact_table(
     complaints["complaint_date"] = pd.to_datetime(complaints["date_received"])
     complaints["month"] = complaints["complaint_date"].dt.to_period("M").astype(str)
     complaints["narrative"] = (
-        complaints[TEXT_COLUMN].astype("object").where(complaints[TEXT_COLUMN].notna(), "").astype(str).str.strip()
+        complaints[TEXT_COLUMN]
+        .astype("object")
+        .where(complaints[TEXT_COLUMN].notna(), "")
+        .astype(str)
+        .str.strip()
     )
 
     accounts = resolved.get(TABLE_ACCOUNTS)
@@ -389,7 +391,10 @@ def complaint_fact_table(
             # a Parquet round-trip (data/sample/). notna() alone would only label the
             # CSV case __missing__ and let "" through unlabeled on Parquet-loaded data.
             complaints[field] = (
-                complaints[field].astype("object").where(~_is_blank(complaints[field]), "__missing__").astype(str)
+                complaints[field]
+                .astype("object")
+                .where(~_is_blank(complaints[field]), "__missing__")
+                .astype(str)
             )
 
     leading = [column for column in COMPLAINT_FACT_COLUMNS if column in complaints.columns]
@@ -400,9 +405,7 @@ def complaint_fact_table(
 def available_segment_fields(facts: pd.DataFrame) -> tuple[str, ...]:
     """Segment fields actually present on the complaint fact table."""
     return tuple(
-        field
-        for field in COMPLAINT_SEGMENT_FIELDS + ACCOUNT_JOIN_FIELDS
-        if field in facts.columns
+        field for field in COMPLAINT_SEGMENT_FIELDS + ACCOUNT_JOIN_FIELDS if field in facts.columns
     )
 
 
@@ -483,9 +486,7 @@ def assign_complaint_themes(
     labelled["theme_similarity"] = best_similarity.astype(float)
     labelled["embedding_backend"] = backend_name
 
-    return ThemeAssignment(
-        facts=labelled, embeddings=narrative_vectors, backend_name=backend_name
-    )
+    return ThemeAssignment(facts=labelled, embeddings=narrative_vectors, backend_name=backend_name)
 
 
 def _resolve_assignment(
@@ -523,11 +524,7 @@ def _movement(
     """Period-over-period complaint counts, shares and mean similarity."""
     window = frame[frame["month"].isin([current_period, previous_period])]
 
-    counts = (
-        window.groupby(list(group_columns) + ["month"], observed=False)
-        .size()
-        .unstack("month")
-    )
+    counts = window.groupby(list(group_columns) + ["month"], observed=False).size().unstack("month")
     for period in (previous_period, current_period):
         if period not in counts.columns:
             counts[period] = 0
@@ -553,9 +550,7 @@ def _movement(
     out["previous_share"] = (
         out["previous_complaints"].divide(previous_total).where(previous_total > 0)
     )
-    out["current_share"] = (
-        out["current_complaints"].divide(current_total).where(current_total > 0)
-    )
+    out["current_share"] = out["current_complaints"].divide(current_total).where(current_total > 0)
     out["share_change"] = out["current_share"] - out["previous_share"]
 
     similarity = (
@@ -704,9 +699,7 @@ def representative_complaints(
     top["theme_name"] = top["theme_name"].astype(str)
 
     ordered = [
-        column
-        for column in REPRESENTATIVE_COLUMNS
-        if column in top.columns or column in available
+        column for column in REPRESENTATIVE_COLUMNS if column in top.columns or column in available
     ]
     return top[[column for column in ordered if column in top.columns]].reset_index(drop=True)
 
@@ -766,7 +759,7 @@ def cluster_emerging_themes(
         rows.append(
             {
                 "cluster_id": int(cluster_id),
-                "complaints": int(len(members)),
+                "complaints": len(members),
                 "share_of_complaints": len(members) / len(selected_facts),
                 "dominant_theme": str(theme_counts.index[0]),
                 "dominant_theme_share": float(theme_counts.iloc[0] / len(members)),
@@ -853,9 +846,7 @@ if __name__ == "__main__":
     print()
     print("Theme movement inside travel and mobile (the corrected KPI driver segments)")
     print("-" * 118)
-    focus = report.segment_themes[
-        report.segment_themes["segment_value"].isin(["travel", "mobile"])
-    ]
+    focus = report.segment_themes[report.segment_themes["segment_value"].isin(["travel", "mobile"])]
     print(focus.head(12).round(4).to_string(index=False))
 
     print()

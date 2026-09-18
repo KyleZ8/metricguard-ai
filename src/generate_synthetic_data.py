@@ -8,16 +8,15 @@ work in a credit-card risk/product analytics environment.
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import math
 import random
 import string
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 from config import FULL_DATA_DIR, SAMPLE_DATA_DIR
-
 
 SEED = 461
 N_ACCOUNTS = 12_000
@@ -67,7 +66,13 @@ MERCHANTS = (
     ),
     MerchantTemplate(
         "subscription",
-        ("STREAMLY MONTHLY", "MUSICBOX SUB", "CLOUDSPACE PRO", "FITAPP PREMIUM", "NEWSPLUS DIGITAL"),
+        (
+            "STREAMLY MONTHLY",
+            "MUSICBOX SUB",
+            "CLOUDSPACE PRO",
+            "FITAPP PREMIUM",
+            "NEWSPLUS DIGITAL",
+        ),
         17,
         0.25,
     ),
@@ -167,9 +172,13 @@ def generate_accounts(rng: np.random.Generator) -> pd.DataFrame:
         utilization = float(np.clip(rng.beta(2.2, 5.2) + util_mean / 4, 0.01, 0.97))
         balances.append(round(limit * utilization, 2))
 
-    regions = rng_choice(rng, STATE_BY_REGION.keys(), probs=(0.24, 0.34, 0.22, 0.20), size=N_ACCOUNTS)
+    regions = rng_choice(
+        rng, STATE_BY_REGION.keys(), probs=(0.24, 0.34, 0.22, 0.20), size=N_ACCOUNTS
+    )
     states = [rng.choice(STATE_BY_REGION[r]) for r in regions]
-    origin = rng_choice(rng, ("web", "mobile", "branch", "partner"), probs=(0.39, 0.37, 0.09, 0.15), size=N_ACCOUNTS)
+    origin = rng_choice(
+        rng, ("web", "mobile", "branch", "partner"), probs=(0.39, 0.37, 0.09, 0.15), size=N_ACCOUNTS
+    )
     open_offsets = rng.integers(0, (START_DATE - pd.Timestamp("2018-01-01")).days, size=N_ACCOUNTS)
     open_dates = pd.Timestamp("2018-01-01") + pd.to_timedelta(open_offsets, unit="D")
     active = rng.choice([1, 0], p=[0.965, 0.035], size=N_ACCOUNTS)
@@ -212,15 +221,21 @@ def generate_monthly_snapshots(accounts: pd.DataFrame, rng: np.random.Generator)
                 active = 1
             seasonal = 1.0 + 0.05 * math.sin(month.month / 12 * 2 * math.pi)
             balance_noise = rng.normal(1.0, 0.13)
-            statement_balance = float(np.clip(base_balance * seasonal * balance_noise, 0, limit * 1.05))
+            statement_balance = float(
+                np.clip(base_balance * seasonal * balance_noise, 0, limit * 1.05)
+            )
             delinquency_prob = dpd_base
             if month >= pd.Timestamp("2026-08-01") and rec.fico_band == "<=660":
                 delinquency_prob += 0.012
             is_30dpd = int(active and rng.random() < delinquency_prob)
             if is_30dpd:
-                days_past_due = int(rng.choice([30, 45, 60, 75, 90, 120], p=[0.50, 0.20, 0.13, 0.08, 0.06, 0.03]))
+                days_past_due = int(
+                    rng.choice([30, 45, 60, 75, 90, 120], p=[0.50, 0.20, 0.13, 0.08, 0.06, 0.03])
+                )
             else:
-                days_past_due = int(rng.choice([0, 0, 0, 5, 10, 15], p=[0.80, 0.08, 0.04, 0.04, 0.025, 0.015]))
+                days_past_due = int(
+                    rng.choice([0, 0, 0, 5, 10, 15], p=[0.80, 0.08, 0.04, 0.04, 0.025, 0.015])
+                )
             charge_off_balance = 0.0
             if days_past_due >= 120 and rng.random() < 0.35:
                 charge_off_balance = round(statement_balance * rng.uniform(0.55, 1.0), 2)
@@ -260,7 +275,9 @@ def transaction_amount(template: MerchantTemplate, rng: np.random.Generator) -> 
     return round(float(np.clip(amount, 2.49, 2200)), 2)
 
 
-def dispute_probability(rec, month: pd.Timestamp, category: str, channel: str, rng: np.random.Generator) -> float:
+def dispute_probability(
+    rec, month: pd.Timestamp, category: str, channel: str, rng: np.random.Generator
+) -> float:
     base = 0.0105
     if rec.fico_band == "<=660":
         base += 0.0035
@@ -274,9 +291,18 @@ def dispute_probability(rec, month: pd.Timestamp, category: str, channel: str, r
         base += 0.010
     if month >= SPIKE_START and category == "travel" and channel == "mobile":
         base += 0.025
-    if month >= SPIKE_START and category == "travel" and channel == "mobile" and rec.fico_band == "<=660":
+    if (
+        month >= SPIKE_START
+        and category == "travel"
+        and channel == "mobile"
+        and rec.fico_band == "<=660"
+    ):
         base += 0.100
-    if month >= SPIKE_START and category == "travel" and rec.customer_segment in {"student", "young_professional"}:
+    if (
+        month >= SPIKE_START
+        and category == "travel"
+        and rec.customer_segment in {"student", "young_professional"}
+    ):
         base += 0.040
     return min(base, 0.18)
 
@@ -294,7 +320,6 @@ def fraud_probability(category: str, channel: str, rec) -> float:
 
 def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
     active_accounts = accounts[accounts["active_flag"] == 1].reset_index(drop=True)
-    acct_lookup = {r.account_id: r for r in active_accounts.itertuples(index=False)}
     rows = []
     tx_counter = 1
     months = month_starts()
@@ -329,8 +354,14 @@ def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> p
                 posted_lag = int(rng.choice([0, 1, 2, 3, 4], p=[0.08, 0.45, 0.32, 0.12, 0.03]))
                 posted_date = tx_date + pd.Timedelta(days=posted_lag)
                 batch_date = posted_date if posted_date <= END_DATE else END_DATE
-                is_disputed = int(rng.random() < dispute_probability(rec, tx_date, template.category, channel, rng))
-                is_fraud = int(is_disputed and rng.random() < fraud_probability(template.category, channel, rec))
+                is_disputed = int(
+                    rng.random()
+                    < dispute_probability(rec, tx_date, template.category, channel, rng)
+                )
+                is_fraud = int(
+                    is_disputed
+                    and rng.random() < fraud_probability(template.category, channel, rec)
+                )
 
                 if month >= SPIKE_START and template.category == "travel" and channel == "mobile":
                     source_system = "dispute_platform"
@@ -357,7 +388,12 @@ def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> p
                         "payment_failed": 0,
                         "ingestion_batch_id": batch_id,
                         "source_system": source_system,
-                        "created_at": (batch_date + pd.Timedelta(hours=int(rng.integers(1, 6)), minutes=int(rng.integers(0, 60)))).isoformat(),
+                        "created_at": (
+                            batch_date
+                            + pd.Timedelta(
+                                hours=int(rng.integers(1, 6)), minutes=int(rng.integers(0, 60))
+                            )
+                        ).isoformat(),
                     }
                 )
                 tx_counter += 1
@@ -369,7 +405,9 @@ def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> p
                 if month >= SPIKE_START and rec.channel_origin == "mobile":
                     fail_prob += 0.025
                 payment_failed = int(rng.random() < fail_prob)
-                amount = round(float(np.clip(rec.current_balance * rng.uniform(0.08, 0.55), 25, 4500)), 2)
+                amount = round(
+                    float(np.clip(rec.current_balance * rng.uniform(0.08, 0.55), 25, 4500)), 2
+                )
                 rows.append(
                     {
                         "transaction_id": f"TX{tx_counter:010d}",
@@ -378,8 +416,12 @@ def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> p
                         "transaction_date": pay_date.date().isoformat(),
                         "posted_date": (pay_date + pd.Timedelta(days=1)).date().isoformat(),
                         "merchant_category": "payment",
-                        "merchant_name": "AUTOPAY THANK YOU" if rec.channel_origin == "mobile" else "ONLINE PAYMENT THANK YOU",
-                        "channel": rec.channel_origin if rec.channel_origin in {"web", "mobile"} else "web",
+                        "merchant_name": "AUTOPAY THANK YOU"
+                        if rec.channel_origin == "mobile"
+                        else "ONLINE PAYMENT THANK YOU",
+                        "channel": rec.channel_origin
+                        if rec.channel_origin in {"web", "mobile"}
+                        else "web",
                         "transaction_amount": -amount if not payment_failed else 0.0,
                         "transaction_type": "payment",
                         "is_disputed": 0,
@@ -395,11 +437,21 @@ def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> p
             if rng.random() < (0.045 if rec.fico_band == "<=660" else 0.018):
                 fee_date = month + pd.Timedelta(days=int(rng.integers(3, days_in_month)))
                 fee_type = rng.choice(
-                    ("LATE PAYMENT FEE", "RETURNED PAYMENT FEE", "CASH ADVANCE FEE", "FOREIGN TRANSACTION FEE"),
+                    (
+                        "LATE PAYMENT FEE",
+                        "RETURNED PAYMENT FEE",
+                        "CASH ADVANCE FEE",
+                        "FOREIGN TRANSACTION FEE",
+                    ),
                     p=(0.42, 0.20, 0.10, 0.28),
                 )
-                if month >= SPIKE_START and rec.customer_segment in {"student", "young_professional"}:
-                    fee_type = rng.choice(("FOREIGN TRANSACTION FEE", "LATE PAYMENT FEE"), p=(0.68, 0.32))
+                if month >= SPIKE_START and rec.customer_segment in {
+                    "student",
+                    "young_professional",
+                }:
+                    fee_type = rng.choice(
+                        ("FOREIGN TRANSACTION FEE", "LATE PAYMENT FEE"), p=(0.68, 0.32)
+                    )
                 rows.append(
                     {
                         "transaction_id": f"TX{tx_counter:010d}",
@@ -410,7 +462,9 @@ def generate_transactions(accounts: pd.DataFrame, rng: np.random.Generator) -> p
                         "merchant_category": "fee",
                         "merchant_name": fee_type,
                         "channel": "system",
-                        "transaction_amount": round(float(rng.choice([1.86, 2.75, 12.99, 25.0, 29.0, 35.0])), 2),
+                        "transaction_amount": round(
+                            float(rng.choice([1.86, 2.75, 12.99, 25.0, 29.0, 35.0])), 2
+                        ),
                         "transaction_type": "fee",
                         "is_disputed": int(rng.random() < 0.08),
                         "is_fraud_claim": 0,
@@ -673,7 +727,9 @@ def complaint_narrative(
     return sentence
 
 
-def generate_complaints(accounts: pd.DataFrame, transactions: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+def generate_complaints(
+    accounts: pd.DataFrame, transactions: pd.DataFrame, rng: np.random.Generator
+) -> pd.DataFrame:
     purchase_tx = transactions[transactions["transaction_type"] == "purchase"].copy()
     disputed = purchase_tx[purchase_tx["is_disputed"] == 1]
     failed_payments = transactions[transactions["payment_failed"] == 1]
@@ -681,7 +737,9 @@ def generate_complaints(accounts: pd.DataFrame, transactions: pd.DataFrame, rng:
 
     complaint_sources = []
     complaint_sources.append(disputed.sample(n=min(3100, len(disputed)), random_state=SEED))
-    complaint_sources.append(failed_payments.sample(n=min(950, len(failed_payments)), random_state=SEED + 2))
+    complaint_sources.append(
+        failed_payments.sample(n=min(950, len(failed_payments)), random_state=SEED + 2)
+    )
     complaint_sources.append(fee_tx.sample(n=min(1250, len(fee_tx)), random_state=SEED + 3))
     seed_events = pd.concat(complaint_sources, ignore_index=True)
 
@@ -690,27 +748,51 @@ def generate_complaints(accounts: pd.DataFrame, transactions: pd.DataFrame, rng:
     for i, rec in enumerate(seed_events.itertuples(index=False), 1):
         acc = acct.loc[rec.account_id]
         tx_date = pd.Timestamp(rec.transaction_date)
-        received = tx_date + pd.Timedelta(days=int(rng.choice([1, 2, 3, 4, 5, 8, 12], p=[0.24, 0.25, 0.18, 0.13, 0.10, 0.06, 0.04])))
-        if received > END_DATE:
-            received = END_DATE
+        received = tx_date + pd.Timedelta(
+            days=int(
+                rng.choice([1, 2, 3, 4, 5, 8, 12], p=[0.24, 0.25, 0.18, 0.13, 0.10, 0.06, 0.04])
+            )
+        )
+        received = min(received, END_DATE)
 
         if rec.payment_failed:
             issue = "Problem when making payments"
-            sub_issue = rng.choice(("Problem with autopay", "Payment did not process", "Late fee after payment issue"))
+            sub_issue = rng.choice(
+                ("Problem with autopay", "Payment did not process", "Late fee after payment issue")
+            )
         elif rec.transaction_type == "fee" or "FEE" in rec.merchant_name:
             issue = "Fees or interest"
-            sub_issue = rng.choice(("Problem with fees", "Unexpected fee", "Foreign transaction fee"))
+            sub_issue = rng.choice(
+                ("Problem with fees", "Unexpected fee", "Foreign transaction fee")
+            )
         elif rec.is_fraud_claim:
             issue = "Problem with fraud alerts or security"
-            sub_issue = rng.choice(("Card was used without permission", "Problem with fraud alert", "Transaction declined"))
+            sub_issue = rng.choice(
+                (
+                    "Card was used without permission",
+                    "Problem with fraud alert",
+                    "Transaction declined",
+                )
+            )
         else:
             issue = "Problem with a purchase shown on your statement"
-            sub_issue = rng.choice(("Card was charged for something you did not purchase", "Credit card company isn't resolving a dispute", "Problem with merchant descriptor"))
+            sub_issue = rng.choice(
+                (
+                    "Card was charged for something you did not purchase",
+                    "Credit card company isn't resolving a dispute",
+                    "Problem with merchant descriptor",
+                )
+            )
 
         channel = rng.choice(("Web", "Phone", "Mobile app", "Referral"), p=(0.52, 0.25, 0.18, 0.05))
         timely = rng.choice(("Yes", "No"), p=(0.91, 0.09))
         response = rng.choice(
-            ("Closed with explanation", "Closed with monetary relief", "Closed with non-monetary relief", "In progress"),
+            (
+                "Closed with explanation",
+                "Closed with monetary relief",
+                "Closed with non-monetary relief",
+                "In progress",
+            ),
             p=(0.64, 0.16, 0.12, 0.08),
         )
         rows.append(
@@ -831,7 +913,12 @@ def metric_definitions() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def write_ground_truth(accounts: pd.DataFrame, snapshots: pd.DataFrame, transactions: pd.DataFrame, complaints: pd.DataFrame) -> None:
+def write_ground_truth(
+    accounts: pd.DataFrame,
+    snapshots: pd.DataFrame,
+    transactions: pd.DataFrame,
+    complaints: pd.DataFrame,
+) -> None:
     purchase = transactions[transactions["transaction_type"] == "purchase"].copy()
     purchase["month"] = pd.to_datetime(purchase["transaction_date"]).dt.to_period("M").astype(str)
     raw = purchase.groupby("month").agg(
@@ -850,10 +937,11 @@ def write_ground_truth(accounts: pd.DataFrame, snapshots: pd.DataFrame, transact
     missing_categories = int(
         (transactions["merchant_category"].isna() | (transactions["merchant_category"] == "")).sum()
     )
-    aug_drivers = dedup[
-        (dedup["month"] == "2026-08")
-        & (dedup["is_disputed"] == 1)
-    ].merge(accounts[["account_id", "fico_band", "customer_segment", "product_type", "region"]], on="account_id", how="left")
+    aug_drivers = dedup[(dedup["month"] == "2026-08") & (dedup["is_disputed"] == 1)].merge(
+        accounts[["account_id", "fico_band", "customer_segment", "product_type", "region"]],
+        on="account_id",
+        how="left",
+    )
     driver_table = (
         aug_drivers.groupby(["merchant_category", "channel", "fico_band"])
         .size()
@@ -861,7 +949,9 @@ def write_ground_truth(accounts: pd.DataFrame, snapshots: pd.DataFrame, transact
         .sort_values("disputed_purchase_count", ascending=False)
         .head(8)
     )
-    top_complaint_terms = complaints[pd.to_datetime(complaints["date_received"]).dt.strftime("%Y-%m") == "2026-08"]["issue"].value_counts()
+    top_complaint_terms = complaints[
+        pd.to_datetime(complaints["date_received"]).dt.strftime("%Y-%m") == "2026-08"
+    ]["issue"].value_counts()
 
     # Narrative theme movement, measured with plain keyword probes.
     #
@@ -895,7 +985,9 @@ def write_ground_truth(accounts: pd.DataFrame, snapshots: pd.DataFrame, transact
                 "change": august_count - july_count,
             }
         )
-    probe_table = pd.DataFrame(probe_rows).sort_values("change", ascending=False).reset_index(drop=True)
+    probe_table = (
+        pd.DataFrame(probe_rows).sort_values("change", ascending=False).reset_index(drop=True)
+    )
     rising = probe_table[probe_table["change"] > 0]["narrative_theme"].tolist()
     not_rising = probe_table[probe_table["change"] <= 0]["narrative_theme"].tolist()
 

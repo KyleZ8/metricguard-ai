@@ -16,14 +16,13 @@ Two kinds of assertion appear here:
 
 from __future__ import annotations
 
+import sys
 from functools import lru_cache
 from pathlib import Path
-import sys
 
 import numpy as np
 import pandas as pd
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -58,7 +57,6 @@ from quality_checks import (  # noqa: E402
     run_quality_checks,
     summarize_quality_checks,
 )
-
 
 # Ground truth recorded in data/synthetic/GROUND_TRUTH.md.
 EXPECTED_DUPLICATE_SOURCE_ROWS = 165
@@ -354,7 +352,9 @@ def test_posted_date_ordering_allows_same_day_posting():
     transactions = _tables()[TABLE_TRANSACTIONS].head(100).copy()
     transactions["posted_date"] = transactions["transaction_date"]
 
-    assert _only(check_posted_date_not_before_transaction_date(transactions))["status"] == STATUS_PASS
+    assert (
+        _only(check_posted_date_not_before_transaction_date(transactions))["status"] == STATUS_PASS
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -510,7 +510,8 @@ def test_referential_integrity_fails_on_an_orphan_account_id():
     tables[TABLE_COMPLAINTS] = complaints
 
     row = _find(
-        check_referential_integrity(tables), f"referential_integrity__{TABLE_COMPLAINTS}__account_id"
+        check_referential_integrity(tables),
+        f"referential_integrity__{TABLE_COMPLAINTS}__account_id",
     )
 
     assert row["status"] == STATUS_FAIL
@@ -545,7 +546,10 @@ def test_row_count_anomaly_flags_a_duplicated_month_of_transactions():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS]
     august = transactions[
-        pd.to_datetime(transactions["transaction_date"]).dt.to_period("M").astype(str).eq(SPIKE_MONTH)
+        pd.to_datetime(transactions["transaction_date"])
+        .dt.to_period("M")
+        .astype(str)
+        .eq(SPIKE_MONTH)
     ]
     tables[TABLE_TRANSACTIONS] = pd.concat([transactions, august], ignore_index=True)
 
@@ -589,15 +593,16 @@ def test_null_rate_drift_ignores_a_movement_below_the_practical_floor():
     # a zero-variance baseline, operationally irrelevant.
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS].copy()
-    august = pd.to_datetime(transactions["transaction_date"]).dt.to_period("M").astype(str).eq(
-        SPIKE_MONTH
+    august = (
+        pd.to_datetime(transactions["transaction_date"])
+        .dt.to_period("M")
+        .astype(str)
+        .eq(SPIKE_MONTH)
     )
     transactions.loc[transactions.index[august][0], "channel"] = np.nan
     tables[TABLE_TRANSACTIONS] = transactions
 
-    row = _find(
-        check_null_rate_drift(tables), f"null_rate_drift__{TABLE_TRANSACTIONS}__channel"
-    )
+    row = _find(check_null_rate_drift(tables), f"null_rate_drift__{TABLE_TRANSACTIONS}__channel")
 
     assert row["status"] == STATUS_PASS
 
@@ -628,8 +633,11 @@ def test_category_drift_passes_for_a_stable_channel_mix():
 def test_category_drift_fails_when_a_channel_is_remapped_wholesale():
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS].copy()
-    august = pd.to_datetime(transactions["transaction_date"]).dt.to_period("M").astype(str).eq(
-        SPIKE_MONTH
+    august = (
+        pd.to_datetime(transactions["transaction_date"])
+        .dt.to_period("M")
+        .astype(str)
+        .eq(SPIKE_MONTH)
     )
     transactions.loc[august & transactions["channel"].eq("card_present"), "channel"] = "mobile"
     tables[TABLE_TRANSACTIONS] = transactions
@@ -841,7 +849,7 @@ def test_summary_lists_the_failing_and_warning_checks():
 def test_summary_of_an_all_clean_report_is_a_perfect_pass_rate():
     clean = pd.DataFrame(
         [
-            {column: "" for column in RESULT_COLUMNS} | {"status": STATUS_PASS, "check_name": name}
+            dict.fromkeys(RESULT_COLUMNS, "") | {"status": STATUS_PASS, "check_name": name}
             for name in ("a", "b")
         ]
     )

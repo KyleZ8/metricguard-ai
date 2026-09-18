@@ -15,15 +15,14 @@ below exist specifically to prove that cannot happen.
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
 import hashlib
 import sys
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -51,7 +50,6 @@ from driver_analysis import (  # noqa: E402
 )
 from metric_engine import duplicate_source_transactions  # noqa: E402
 from quality_checks import TABLE_ACCOUNTS, TABLE_TRANSACTIONS, load_tables  # noqa: E402
-
 
 SPIKE_MONTH = "2026-08"
 PRIOR_MONTH = "2026-07"
@@ -95,7 +93,9 @@ def _segment_row(drivers: pd.DataFrame, segment_name: str, segment_value: str) -
     matches = drivers[
         drivers["segment_name"].eq(segment_name) & drivers["segment_value"].eq(segment_value)
     ]
-    assert len(matches) == 1, f"expected one row for {segment_name}={segment_value}, got {len(matches)}"
+    assert len(matches) == 1, (
+        f"expected one row for {segment_name}={segment_value}, got {len(matches)}"
+    )
     return matches.iloc[0]
 
 
@@ -163,11 +163,15 @@ def _toy_tables() -> dict[str, pd.DataFrame]:
 
     transactions = pd.DataFrame(rows)
     # A replayed travel/mobile dispute: same source event, new row id.
-    replay = transactions[
-        transactions["transaction_date"].eq("2026-02-05")
-        & transactions["merchant_category"].eq("travel")
-        & transactions["is_disputed"].eq(1)
-    ].head(1).copy()
+    replay = (
+        transactions[
+            transactions["transaction_date"].eq("2026-02-05")
+            & transactions["merchant_category"].eq("travel")
+            & transactions["is_disputed"].eq(1)
+        ]
+        .head(1)
+        .copy()
+    )
     replay["transaction_id"] = "T_REPLAY"
     replay["created_at"] = "2026-02-09 09:00"
     transactions = pd.concat([transactions, replay], ignore_index=True)
@@ -207,9 +211,11 @@ def test_injecting_more_replayed_rows_does_not_change_the_driver_table():
     # rows that already exist must be a no-op on every driver number.
     tables = dict(_tables())
     transactions = tables[TABLE_TRANSACTIONS]
-    replay = transactions[transactions["source_transaction_id"].isin(
-        duplicate_source_transactions(transactions)["source_transaction_id"]
-    )].copy()
+    replay = transactions[
+        transactions["source_transaction_id"].isin(
+            duplicate_source_transactions(transactions)["source_transaction_id"]
+        )
+    ].copy()
     replay["transaction_id"] = "REPLAY_" + replay["transaction_id"].astype(str)
     replay["created_at"] = replay["created_at"] + pd.Timedelta(days=1)
     tables[TABLE_TRANSACTIONS] = pd.concat([transactions, replay], ignore_index=True)
@@ -324,7 +330,9 @@ def test_count_columns_are_integers():
 def test_contribution_share_sums_to_one_within_each_segment_field():
     # Each segment field partitions the same population, so shares must total
     # 1.0 per field. A pooled share across fields would double-count disputes.
-    totals = _drivers().groupby("segment_name")["contribution_share_of_positive_dispute_change"].sum()
+    totals = (
+        _drivers().groupby("segment_name")["contribution_share_of_positive_dispute_change"].sum()
+    )
 
     np.testing.assert_allclose(totals.to_numpy(), np.ones(len(totals)))
 
@@ -604,12 +612,16 @@ def test_interaction_flags_small_cells():
     flagged = interaction[interaction["min_denominator_flag"]]
 
     assert not flagged.empty
-    assert (flagged[["previous_purchases", "current_purchases"]].min(axis=1) < DEFAULT_MIN_DENOMINATOR).all()
+    assert (
+        flagged[["previous_purchases", "current_purchases"]].min(axis=1) < DEFAULT_MIN_DENOMINATOR
+    ).all()
 
 
 @pytest.mark.slow
 def test_interaction_rejects_a_repeated_segment_field():
-    error = _raises(ValueError, interaction_driver_table, "channel", "channel", None, None, _tables())
+    error = _raises(
+        ValueError, interaction_driver_table, "channel", "channel", None, None, _tables()
+    )
 
     assert "must differ" in str(error)
 

@@ -43,9 +43,9 @@ Run directly to print the full driver report::
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -59,9 +59,9 @@ from metric_engine import (
 )
 from quality_checks import DATA_DIR, TABLE_ACCOUNTS, TABLE_TRANSACTIONS, _is_blank
 
-
 try:  # The decision-tree stretch is optional by design.
-    from sklearn.tree import DecisionTreeClassifier, _tree as _sklearn_tree
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.tree import _tree as _sklearn_tree
 
     SKLEARN_AVAILABLE = True
 except ImportError:  # pragma: no cover - exercised only where sklearn is absent
@@ -188,7 +188,10 @@ def corrected_purchase_facts(
             # would only label the CSV case __missing__ and let "" through unlabeled
             # on Parquet-loaded data.
             purchases[field] = (
-                purchases[field].astype("object").where(~_is_blank(purchases[field]), MISSING_LABEL).astype(str)
+                purchases[field]
+                .astype("object")
+                .where(~_is_blank(purchases[field]), MISSING_LABEL)
+                .astype(str)
             )
 
     return purchases
@@ -259,8 +262,12 @@ def _movement_frame(
 
     frame["disputed_change"] = frame["current_disputed"] - frame["previous_disputed"]
     frame["purchase_change"] = frame["current_purchases"] - frame["previous_purchases"]
-    frame["previous_dispute_rate"] = _safe_rate(frame["previous_disputed"], frame["previous_purchases"])
-    frame["current_dispute_rate"] = _safe_rate(frame["current_disputed"], frame["current_purchases"])
+    frame["previous_dispute_rate"] = _safe_rate(
+        frame["previous_disputed"], frame["previous_purchases"]
+    )
+    frame["current_dispute_rate"] = _safe_rate(
+        frame["current_disputed"], frame["current_purchases"]
+    )
     frame["rate_change"] = frame["current_dispute_rate"] - frame["previous_dispute_rate"]
     frame["min_denominator_flag"] = (
         frame[["previous_purchases", "current_purchases"]].min(axis=1) < min_denominator
@@ -285,9 +292,9 @@ def _add_contribution_share(frame: pd.DataFrame, partition_by: str | None = None
     if partition_by is None:
         out["contribution_share_of_positive_dispute_change"] = _share(out["disputed_change"])
     else:
-        out["contribution_share_of_positive_dispute_change"] = (
-            out.groupby(partition_by, group_keys=False)["disputed_change"].apply(_share)
-        )
+        out["contribution_share_of_positive_dispute_change"] = out.groupby(
+            partition_by, group_keys=False
+        )["disputed_change"].apply(_share)
     return out
 
 
@@ -407,7 +414,9 @@ def interaction_driver_table(
         raise ValueError(f"segment_a and segment_b must differ, both were {segment_a!r}")
     for field in (segment_a, segment_b):
         if field not in SEGMENT_FIELDS:
-            raise ValueError(f"unknown segment field {field!r}; expected one of {list(SEGMENT_FIELDS)}")
+            raise ValueError(
+                f"unknown segment field {field!r}; expected one of {list(SEGMENT_FIELDS)}"
+            )
 
     facts, resolved_current, resolved_previous = _resolve_facts_and_periods(
         tables, current_period, previous_period, data_dir
@@ -419,9 +428,7 @@ def interaction_driver_table(
     movement = _movement_frame(
         facts, [segment_a, segment_b], resolved_current, resolved_previous, min_denominator
     )
-    movement = movement.rename(
-        columns={segment_a: "segment_a_value", segment_b: "segment_b_value"}
-    )
+    movement = movement.rename(columns={segment_a: "segment_a_value", segment_b: "segment_b_value"})
     movement.insert(0, "segment_a_name", segment_a)
     movement.insert(2, "segment_b_name", segment_b)
     movement["segment_a_value"] = movement["segment_a_value"].astype(str)
@@ -440,7 +447,9 @@ def interaction_driver_table(
     )
 
 
-def heatmap_matrix(interaction_table: pd.DataFrame, value_column: str = "rate_change") -> pd.DataFrame:
+def heatmap_matrix(
+    interaction_table: pd.DataFrame, value_column: str = "rate_change"
+) -> pd.DataFrame:
     """Pivot an interaction table into a matrix for heatmap rendering."""
     if value_column not in interaction_table.columns:
         raise KeyError(f"{value_column!r} is not a column of the interaction table")
@@ -537,9 +546,7 @@ def decision_tree_segments(
     summary["dispute_rate"] = summary["disputed"] / summary["purchases"]
 
     overall_rate = float(target.mean())
-    summary["lift_vs_overall"] = (
-        summary["dispute_rate"] / overall_rate if overall_rate else np.nan
-    )
+    summary["lift_vs_overall"] = summary["dispute_rate"] / overall_rate if overall_rate else np.nan
     summary["share_of_purchases"] = summary["purchases"] / len(period_facts)
 
     return (
@@ -579,9 +586,7 @@ def build_driver_report(
 
     tree_rules: pd.DataFrame | None = None
     if include_decision_tree and SKLEARN_AVAILABLE:
-        tree_rules = decision_tree_segments(
-            resolved_current, resolved_tables, data_dir=data_dir
-        )
+        tree_rules = decision_tree_segments(resolved_current, resolved_tables, data_dir=data_dir)
 
     return DriverReport(
         metric_name=METRIC_NAME,

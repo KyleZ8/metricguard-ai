@@ -11,14 +11,13 @@ business investigation, and sizes scenario impact from the selected KPI frame.
 
 from __future__ import annotations
 
+import sys
 from functools import lru_cache
 from pathlib import Path
-import sys
 
 import numpy as np
 import pandas as pd
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -33,7 +32,6 @@ from driver_analysis import build_driver_report  # noqa: E402
 from metric_engine import build_finance_metric_report, resolve_tables  # noqa: E402
 from quality_checks import run_quality_checks  # noqa: E402
 from text_theme_analysis import HashingEmbedder, build_text_theme_report  # noqa: E402
-
 
 SPIKE_MONTH = "2026-08"
 PRIOR_MONTH = "2026-07"
@@ -54,7 +52,10 @@ def _selected_quality(*months: str) -> pd.DataFrame:
     mask = quality["status"].eq("pass")
     for month in months:
         mask = mask | quality.apply(
-            lambda row: any(month in str(row[column]) for column in ("observed_value", "expected_value", "explanation")),
+            lambda row: any(
+                month in str(row[column])
+                for column in ("observed_value", "expected_value", "explanation")
+            ),
             axis=1,
         )
     return quality[mask].reset_index(drop=True)
@@ -173,7 +174,11 @@ def test_negative_month_does_not_receive_a_business_spike_action():
     metric = build_finance_metric_report("dispute_rate", _tables(), "2026-07", "2026-06")
     report = build_action_plan(metric, _selected_quality("2026-07", "2026-06"))
 
-    assert not report.recommendations["action_type"].isin(["Business investigation", "Case review"]).any()
+    assert (
+        not report.recommendations["action_type"]
+        .isin(["Business investigation", "Case review"])
+        .any()
+    )
     assert "spike" in report.decision_summary.lower()
 
 

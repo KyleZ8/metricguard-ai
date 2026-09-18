@@ -29,20 +29,20 @@ real model is available.
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
 import hashlib
 import subprocess
 import sys
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from quality_checks import TABLE_ACCOUNTS, TABLE_COMPLAINTS, load_tables  # noqa: E402
 from text_theme_analysis import (  # noqa: E402
     CLUSTER_COLUMNS,
     REPRESENTATIVE_COLUMNS,
@@ -65,8 +65,6 @@ from text_theme_analysis import (  # noqa: E402
     segment_theme_table,
     theme_summary_table,
 )
-from quality_checks import TABLE_ACCOUNTS, TABLE_COMPLAINTS, load_tables  # noqa: E402
-
 
 SPIKE_MONTH = "2026-08"
 PRIOR_MONTH = "2026-07"
@@ -180,9 +178,7 @@ def _theme_row(summary: pd.DataFrame, theme_name: str) -> pd.Series:
 
 
 def _segment_theme_row(segments: pd.DataFrame, value: str, theme_name: str) -> pd.Series:
-    matches = segments[
-        segments["segment_value"].eq(value) & segments["theme_name"].eq(theme_name)
-    ]
+    matches = segments[segments["segment_value"].eq(value) & segments["theme_name"].eq(theme_name)]
     assert len(matches) == 1, f"expected one row for {value}/{theme_name}, got {len(matches)}"
     return matches.iloc[0]
 
@@ -214,9 +210,7 @@ def test_cosine_similarity_is_scale_invariant():
     single = np.array([[3.0, 4.0]])
     scaled = np.array([[30.0, 40.0]])
 
-    np.testing.assert_allclose(
-        cosine_similarity_matrix(single, scaled), np.array([[1.0]])
-    )
+    np.testing.assert_allclose(cosine_similarity_matrix(single, scaled), np.array([[1.0]]))
 
 
 def test_cosine_similarity_treats_a_zero_vector_as_zero_not_nan():
@@ -355,9 +349,7 @@ def test_assignment_rejects_an_embedder_returning_the_wrong_row_count():
     def broken(texts):
         return np.ones((len(texts) - 1, 3))
 
-    error = _raises(
-        ValueError, assign_complaint_themes, _toy_facts(), broken, TOY_TAXONOMY
-    )
+    error = _raises(ValueError, assign_complaint_themes, _toy_facts(), broken, TOY_TAXONOMY)
 
     assert "vectors" in str(error)
 
@@ -484,7 +476,10 @@ def test_theme_summary_counts_reconcile_with_the_labelled_complaints():
     summary = _summary()
     labelled = _assignment().facts
 
-    for period, column in ((PRIOR_MONTH, "previous_complaints"), (SPIKE_MONTH, "current_complaints")):
+    for period, column in (
+        (PRIOR_MONTH, "previous_complaints"),
+        (SPIKE_MONTH, "current_complaints"),
+    ):
         assert summary[column].sum() == int(labelled["month"].eq(period).sum())
 
 
@@ -493,7 +488,8 @@ def test_theme_summary_changes_are_consistent_with_their_levels():
     summary = _summary()
 
     assert (
-        summary["complaint_change"] == summary["current_complaints"] - summary["previous_complaints"]
+        summary["complaint_change"]
+        == summary["current_complaints"] - summary["previous_complaints"]
     ).all()
     np.testing.assert_allclose(
         summary["share_change"].to_numpy(dtype=float),
@@ -574,9 +570,7 @@ def test_segment_theme_counts_reconcile_with_the_summary_totals():
 
 @pytest.mark.slow
 def test_segment_theme_table_can_use_other_segment_fields():
-    segments = segment_theme_table(
-        segment_fields=("fico_band",), assignment=_assignment()
-    )
+    segments = segment_theme_table(segment_fields=("fico_band",), assignment=_assignment())
 
     assert set(segments["segment_name"]) == {"fico_band"}
     assert set(segments["segment_value"]) == {"<=660", ">660"}
@@ -602,7 +596,9 @@ def test_representative_complaints_belong_to_the_theme_they_illustrate():
 
     for _, row in examples.iterrows():
         actual = str(labelled.loc[row["complaint_id"], "theme_name"])
-        assert actual == row["theme_name"], f"{row['complaint_id']} is {actual}, not {row['theme_name']}"
+        assert actual == row["theme_name"], (
+            f"{row['complaint_id']} is {actual}, not {row['theme_name']}"
+        )
 
 
 @pytest.mark.slow
@@ -730,9 +726,7 @@ def test_clustering_is_deterministic():
 def test_clustering_rejects_more_clusters_than_complaints():
     if not SKLEARN_AVAILABLE:
         return
-    error = _raises(
-        ValueError, cluster_emerging_themes, _assignment(), 100_000, SPIKE_MONTH
-    )
+    error = _raises(ValueError, cluster_emerging_themes, _assignment(), 100_000, SPIKE_MONTH)
 
     assert "at least" in str(error)
 
@@ -782,7 +776,9 @@ def test_dispute_issue_volume_is_what_actually_grows_in_august():
     )
 
     dispute_issue = "Problem with a purchase shown on your statement"
-    dispute_growth = by_issue.loc[dispute_issue, SPIKE_MONTH] - by_issue.loc[dispute_issue, PRIOR_MONTH]
+    dispute_growth = (
+        by_issue.loc[dispute_issue, SPIKE_MONTH] - by_issue.loc[dispute_issue, PRIOR_MONTH]
+    )
     assert dispute_growth > 150
 
     for issue in ("Fees or interest", "Problem when making payments"):
@@ -846,9 +842,7 @@ def test_the_directional_story_holds_under_the_sentence_transformer_backend():
     except Exception:  # noqa: BLE001 - absent package or absent local model
         return
 
-    summary = theme_summary_table(
-        assignment=assign_complaint_themes(_facts(), embedder)
-    )
+    summary = theme_summary_table(assignment=assign_complaint_themes(_facts(), embedder))
     for theme in RISING_THEMES:
         assert _theme_row(summary, theme)["complaint_change"] > 0, theme
 
@@ -952,9 +946,11 @@ def test_non_mobile_app_wording_is_only_the_deliberately_vague_narrative():
         & complaints["channel"].ne("mobile")
     ]
 
-    assert stray["complaint_narrative"].str.startswith(
-        "The app and the statement do not show the same thing"
-    ).all()
+    assert (
+        stray["complaint_narrative"]
+        .str.startswith("The app and the statement do not show the same thing")
+        .all()
+    )
 
 
 @pytest.mark.slow
@@ -1026,9 +1022,7 @@ def _ground_truth_probe_table() -> pd.DataFrame:
     body = text[text.index(marker) :]
     rows = [line for line in body.splitlines() if line.startswith("| ")]
     header = [cell.strip() for cell in rows[0].strip("|").split("|")]
-    records = [
-        [cell.strip() for cell in line.strip("|").split("|")] for line in rows[2:]
-    ]
+    records = [[cell.strip() for cell in line.strip("|").split("|")] for line in rows[2:]]
     frame = pd.DataFrame(records, columns=header)
     for column in ("july_complaints", "august_complaints", "change"):
         frame[column] = frame[column].astype(int)
@@ -1072,7 +1066,9 @@ def test_ground_truth_prose_does_not_contradict_its_own_probe_table():
     falling = set(table[table["change"] <= 0]["narrative_theme"])
 
     sentence = next(
-        line for line in text.splitlines() if line.startswith("Complaint narrative themes that rise")
+        line
+        for line in text.splitlines()
+        if line.startswith("Complaint narrative themes that rise")
     )
     for theme in rising:
         assert theme in sentence, f"{theme} rises but is not listed as rising"
@@ -1107,9 +1103,9 @@ def test_generated_tables_are_internally_consistent():
 def test_complaint_segment_columns_match_their_source_rows():
     tables = _tables()
     complaints = tables[TABLE_COMPLAINTS]
-    related = tables["transactions"].set_index("transaction_id").loc[
-        complaints["related_transaction_id"]
-    ]
+    related = (
+        tables["transactions"].set_index("transaction_id").loc[complaints["related_transaction_id"]]
+    )
     account = tables[TABLE_ACCOUNTS].set_index("account_id").loc[complaints["account_id"]]
 
     assert (complaints["channel"].to_numpy() == related["channel"].to_numpy()).all()
@@ -1127,9 +1123,9 @@ def test_complaint_segment_columns_match_their_source_rows():
 def test_complaints_are_never_received_before_their_transaction():
     tables = _tables()
     complaints = tables[TABLE_COMPLAINTS]
-    related = tables["transactions"].set_index("transaction_id").loc[
-        complaints["related_transaction_id"]
-    ]
+    related = (
+        tables["transactions"].set_index("transaction_id").loc[complaints["related_transaction_id"]]
+    )
 
     received = pd.to_datetime(complaints["date_received"]).to_numpy()
     occurred = pd.to_datetime(related["transaction_date"]).to_numpy()
@@ -1164,9 +1160,7 @@ def test_building_the_report_does_not_modify_any_generated_csv():
 def test_text_theme_analysis_never_writes_to_the_data_directory():
     before = sorted(path.name for path in DATA_DIR.iterdir())
 
-    build_text_theme_report(
-        tables=_tables(), embedder=HashingEmbedder(), include_clusters=False
-    )
+    build_text_theme_report(tables=_tables(), embedder=HashingEmbedder(), include_clusters=False)
 
     assert sorted(path.name for path in DATA_DIR.iterdir()) == before
 

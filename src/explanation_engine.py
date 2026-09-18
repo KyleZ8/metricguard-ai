@@ -50,15 +50,16 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import asdict, dataclass, field
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Protocol, Sequence
+from typing import Any, Protocol
 
 import numpy as np
 import pandas as pd
 
 from driver_analysis import DriverReport, build_driver_report
-from metric_engine import METRIC_NAME, MetricReport, build_metric_report
+from metric_engine import MetricReport, build_metric_report
 from quality_checks import (
     DATA_DIR,
     STATUS_FAIL,
@@ -68,7 +69,6 @@ from quality_checks import (
     summarize_quality_checks,
 )
 from text_theme_analysis import TextThemeReport, build_text_theme_report
-
 
 DEFAULT_MODEL_ENV_VAR = "METRICGUARD_LLM_MODEL"
 DEFAULT_MODEL = "gpt-5"
@@ -280,13 +280,10 @@ def validate_numbers(
         )
         status = STATUS_FAIL
     else:
-        notes = (
-            f"All {len(supported_tokens)} material number(s) trace to the evidence packet."
-            + (
-                f" {len(ignored_tokens)} small integer(s) treated as structural."
-                if ignored_tokens
-                else ""
-            )
+        notes = f"All {len(supported_tokens)} material number(s) trace to the evidence packet." + (
+            f" {len(ignored_tokens)} small integer(s) treated as structural."
+            if ignored_tokens
+            else ""
         )
         status = STATUS_PASS
 
@@ -609,7 +606,9 @@ class Explanation:
         return "\n".join(str(part) for part in parts)
 
     def to_markdown(self) -> str:
-        steps = "\n".join(f"{index}. {step}" for index, step in enumerate(self.recommended_next_steps, 1))
+        steps = "\n".join(
+            f"{index}. {step}" for index, step in enumerate(self.recommended_next_steps, 1)
+        )
         limits = "\n".join(f"- {item}" for item in self.limitations)
         references = "\n".join(f"- `{item}`" for item in self.evidence_references)
         return (
@@ -674,7 +673,9 @@ def build_deterministic_explanation(packet: EvidencePacket) -> Explanation:
         and np.isfinite(float(corrected_change))
         and float(corrected_change) > 0
     )
-    material_increase = still_elevated and float(corrected_change) >= MATERIAL_RELATIVE_INCREASE_THRESHOLD
+    material_increase = (
+        still_elevated and float(corrected_change) >= MATERIAL_RELATIVE_INCREASE_THRESHOLD
+    )
 
     if has_duplicates and still_elevated:
         headline = (
@@ -686,9 +687,7 @@ def build_deterministic_explanation(packet: EvidencePacket) -> Explanation:
             "Both need a different response, so they should not be escalated as one number."
         )
     elif has_duplicates:
-        headline = (
-            f"{name} movement in {current} is explained by duplicate source events"
-        )
+        headline = f"{name} movement in {current} is explained by duplicate source events"
         verdict = (
             "After removing duplicated source events the metric is no longer elevated, so this "
             "looks like a pipeline problem rather than a customer or risk problem."
@@ -885,14 +884,20 @@ def build_deterministic_explanation(packet: EvidencePacket) -> Explanation:
             f"{interaction['segment_b_value']} before the next reporting cycle."
         )
     if quality["failing_checks"] or quality["warning_checks"]:
-        recommended_next_steps.append("Review the relevant open data-quality findings before using segment labels operationally.")
-    recommended_next_steps.append("Re-run this investigation after the next data load to confirm whether the movement persists.")
+        recommended_next_steps.append(
+            "Review the relevant open data-quality findings before using segment labels operationally."
+        )
+    recommended_next_steps.append(
+        "Re-run this investigation after the next data load to confirm whether the movement persists."
+    )
 
     references = [
         f"metric_engine.remediation_impact[{current}]",
         f"metric_engine.period_comparison[{previous}->{current}]",
     ]
-    references += [f"quality_checks[{item['check_name']}]" for item in quality["failing_checks"][:3]]
+    references += [
+        f"quality_checks[{item['check_name']}]" for item in quality["failing_checks"][:3]
+    ]
     references += [
         f"driver_analysis.top_count_drivers[{item['segment_name']}={item['segment_value']}]"
         for item in count_drivers[:2]
@@ -1119,9 +1124,7 @@ def explain(
     if not use_llm:
         return build_deterministic_explanation(packet)
 
-    explanation = build_llm_explanation(
-        packet, client=client, model=model, temperature=temperature
-    )
+    explanation = build_llm_explanation(packet, client=client, model=model, temperature=temperature)
 
     if explanation.validation.is_valid:
         return explanation

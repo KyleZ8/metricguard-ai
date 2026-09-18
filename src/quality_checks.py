@@ -39,9 +39,9 @@ Run directly to print the full report::
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -530,7 +530,7 @@ def check_duplicate_source_transaction_ids(transactions: pd.DataFrame) -> list[d
 
 
 def check_required_field_completeness(
-    tables: Mapping[str, pd.DataFrame]
+    tables: Mapping[str, pd.DataFrame],
 ) -> list[dict[str, object]]:
     """Check 2: required fields must be populated on every row."""
     results: list[dict[str, object]] = []
@@ -657,9 +657,7 @@ def check_amount_sign_validity(transactions: pd.DataFrame) -> list[dict[str, obj
             affected_rows=affected_rows,
             affected_columns="transaction_amount, transaction_type, payment_failed",
             observed_value=f"{affected_rows} violations ({'; '.join(breakdown)})",
-            expected_value=(
-                "purchase > 0; fee > 0; successful payment < 0; failed payment = 0"
-            ),
+            expected_value=("purchase > 0; fee > 0; successful payment < 0; failed payment = 0"),
             explanation=(
                 "Amount sign encodes direction of money movement. A purchase or fee "
                 "recorded as a credit, or a failed payment carrying a non-zero amount, "
@@ -800,7 +798,9 @@ def check_monthly_row_count_anomaly(
                 table_name=table_name,
                 status=status,
                 severity=_severity_for(status, SEVERITY_HIGH, SEVERITY_MEDIUM),
-                affected_rows=int(scan.value) if status != STATUS_PASS and np.isfinite(scan.value) else 0,
+                affected_rows=int(scan.value)
+                if status != STATUS_PASS and np.isfinite(scan.value)
+                else 0,
                 affected_columns=MONTH_SOURCE[table_name][0],
                 observed_value=(
                     f"{scan.month}: {_fmt(scan.value, 0)} rows, z={_fmt(scan.z_score, 2)} "
@@ -1045,7 +1045,9 @@ def check_metric_definition_governance(
 ) -> list[dict[str, object]]:
     """Check 11: every registered metric must carry its governance metadata."""
     absent_columns = [
-        field for field in METRIC_DEFINITION_REQUIRED_FIELDS if field not in metric_definitions.columns
+        field
+        for field in METRIC_DEFINITION_REQUIRED_FIELDS
+        if field not in metric_definitions.columns
     ]
     present_columns = [
         field for field in METRIC_DEFINITION_REQUIRED_FIELDS if field in metric_definitions.columns
@@ -1080,18 +1082,14 @@ def check_metric_definition_governance(
             status=status,
             severity=_severity_for(status, SEVERITY_MEDIUM),
             affected_rows=affected_rows,
-            affected_columns=", ".join(
-                field.split("=")[0] for field in incomplete_fields
-            )
-            or "",
+            affected_columns=", ".join(field.split("=")[0] for field in incomplete_fields) or "",
             observed_value=(
                 f"{len(metric_definitions) - affected_rows} of {len(metric_definitions)} "
                 f"metrics fully documented (gaps: {detail})"
                 + (f"; incomplete: {incomplete_metrics}" if incomplete_metrics else "")
             ),
             expected_value=(
-                "every metric documents "
-                f"{', '.join(METRIC_DEFINITION_REQUIRED_FIELDS)}"
+                f"every metric documents {', '.join(METRIC_DEFINITION_REQUIRED_FIELDS)}"
             ),
             explanation=(
                 "A KPI is only trustworthy if its business definition, numerator, "
@@ -1176,7 +1174,7 @@ def summarize_quality_checks(results: pd.DataFrame) -> dict[str, object]:
     failed = int(counts.get(STATUS_FAIL, 0))
     warned = int(counts.get(STATUS_WARN, 0))
     passed = int(counts.get(STATUS_PASS, 0))
-    total = int(len(results))
+    total = len(results)
     return {
         "total_checks": total,
         "passed": passed,

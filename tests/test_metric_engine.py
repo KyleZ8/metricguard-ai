@@ -17,14 +17,13 @@ Assertions come in three kinds:
 
 from __future__ import annotations
 
+import sys
 from functools import lru_cache
 from pathlib import Path
-import sys
 
 import numpy as np
 import pandas as pd
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -64,7 +63,6 @@ from quality_checks import (  # noqa: E402
     TABLE_TRANSACTIONS,
     load_tables,
 )
-
 
 # Ground truth from data/synthetic/GROUND_TRUTH.md.
 SPIKE_MONTH = "2026-08"
@@ -244,7 +242,10 @@ def test_deduplication_preserves_original_row_order():
     deduped = deduplicate_transactions(transactions)
 
     assert deduped.index.is_monotonic_increasing
-    assert deduped["transaction_id"].tolist() == transactions.loc[deduped.index, "transaction_id"].tolist()
+    assert (
+        deduped["transaction_id"].tolist()
+        == transactions.loc[deduped.index, "transaction_id"].tolist()
+    )
 
 
 @pytest.mark.slow
@@ -446,8 +447,12 @@ def test_metric_is_invariant_to_which_row_of_a_duplicate_pair_survives():
         .sort_index()
     )
 
-    from_earliest = monthly_dispute_rate(transactions, deduped=True).set_index("month")["dispute_rate"]
-    from_latest = monthly_dispute_rate(latest_kept, deduped=False).set_index("month")["dispute_rate"]
+    from_earliest = monthly_dispute_rate(transactions, deduped=True).set_index("month")[
+        "dispute_rate"
+    ]
+    from_latest = monthly_dispute_rate(latest_kept, deduped=False).set_index("month")[
+        "dispute_rate"
+    ]
 
     pd.testing.assert_series_equal(from_earliest, from_latest, check_names=False)
 
@@ -568,7 +573,10 @@ def test_period_comparison_numerators_and_denominators_match_the_trend():
     trend = _trend().set_index("month")
     comparison = _report().period_comparison.set_index("variant")
 
-    assert comparison.loc[VARIANT_RAW, "current_numerator"] == trend.loc[SPIKE_MONTH, "disputed_purchases_raw"]
+    assert (
+        comparison.loc[VARIANT_RAW, "current_numerator"]
+        == trend.loc[SPIKE_MONTH, "disputed_purchases_raw"]
+    )
     assert (
         comparison.loc[VARIANT_CORRECTED, "current_denominator"]
         == trend.loc[SPIKE_MONTH, "purchase_transactions_corrected"]
@@ -596,7 +604,9 @@ def test_period_comparison_accepts_explicit_periods():
 
 @pytest.mark.slow
 def test_toy_period_comparison_is_hand_checkable():
-    comparison = period_comparison_table(monthly_trend_table(_toy_transactions())).set_index("variant")
+    comparison = period_comparison_table(monthly_trend_table(_toy_transactions())).set_index(
+        "variant"
+    )
 
     raw = comparison.loc[VARIANT_RAW]
     assert raw["previous_value"] == 0.25
@@ -800,9 +810,7 @@ def test_every_finance_kpi_has_a_monthly_raw_and_corrected_trend():
 def test_every_finance_kpi_supports_explicit_period_comparison_and_remediation():
     for metric_name in FINANCE_KPIS:
         trend = generic_monthly_trend_table(_tables(), metric_name)
-        comparison = generic_period_comparison_table(
-            trend, metric_name, SPIKE_MONTH, PRIOR_MONTH
-        )
+        comparison = generic_period_comparison_table(trend, metric_name, SPIKE_MONTH, PRIOR_MONTH)
         impact = generic_remediation_impact_table(trend, metric_name, SPIKE_MONTH).iloc[0]
 
         assert set(comparison["variant"]) == {VARIANT_RAW, VARIANT_CORRECTED}
@@ -867,13 +875,25 @@ def test_quarterly_trend_aggregates_three_month_windows():
 
 @pytest.mark.slow
 def test_semiannual_report_uses_six_month_windows_and_records_the_months():
-    report = build_finance_metric_report("payment_failure_rate", _tables(), period_grain="semiannual")
+    report = build_finance_metric_report(
+        "payment_failure_rate", _tables(), period_grain="semiannual"
+    )
 
     assert len(report.monthly_trend) == 3
     assert report.period_grain == "semiannual"
     assert report.current_period == "2026-03 to 2026-08"
-    assert report.current_months == ("2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08")
-    assert period_months_from_trend(report.monthly_trend, report.previous_period) == report.previous_months
+    assert report.current_months == (
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08",
+    )
+    assert (
+        period_months_from_trend(report.monthly_trend, report.previous_period)
+        == report.previous_months
+    )
 
 
 @pytest.mark.slow
@@ -882,7 +902,11 @@ def test_generic_segment_drivers_compare_full_period_windows():
         _tables(), "dispute_rate", "2026-08", "2026-07", period_grain="monthly"
     )
     quarterly = generic_segment_driver_table(
-        _tables(), "dispute_rate", "2026-06 to 2026-08", "2026-03 to 2026-05", period_grain="quarterly"
+        _tables(),
+        "dispute_rate",
+        "2026-06 to 2026-08",
+        "2026-03 to 2026-05",
+        period_grain="quarterly",
     )
 
     monthly_travel = monthly[
@@ -898,7 +922,12 @@ def test_generic_segment_drivers_compare_full_period_windows():
 
 @pytest.mark.slow
 def test_unknown_period_grain_is_rejected():
-    error = _raises(ValueError, aggregate_metric_trend, generic_monthly_trend_table(_tables(), "dispute_rate"), "weekly")
+    error = _raises(
+        ValueError,
+        aggregate_metric_trend,
+        generic_monthly_trend_table(_tables(), "dispute_rate"),
+        "weekly",
+    )
 
     assert "period_grain must be" in str(error)
 

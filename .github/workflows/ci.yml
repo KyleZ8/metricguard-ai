@@ -24,7 +24,6 @@ jobs:
           python -m pip install ruff
 
       - name: Ruff lint
-        continue-on-error: true
         run: ruff check .
 
       - name: Fast tests

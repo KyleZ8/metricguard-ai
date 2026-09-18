@@ -20,15 +20,14 @@ generated CSVs. Visual layout is checked by running the app, not by these tests.
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
 import hashlib
 import importlib
 import sys
+from functools import lru_cache
+from pathlib import Path
 
 import pandas as pd
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 for path in (PROJECT_ROOT / "src", PROJECT_ROOT / "app"):
@@ -36,9 +35,7 @@ for path in (PROJECT_ROOT / "src", PROJECT_ROOT / "app"):
         sys.path.insert(0, str(path))
 
 import streamlit_app  # noqa: E402
-
 from quality_checks import STATUS_FAIL, STATUS_PASS, STATUS_WARN  # noqa: E402
-
 
 SPIKE_MONTH = "2026-08"
 PRIOR_MONTH = "2026-07"
@@ -54,7 +51,7 @@ CSV_FILES = (
 
 
 @lru_cache(maxsize=1)
-def _data() -> "streamlit_app.DashboardData":
+def _data() -> streamlit_app.DashboardData:
     """The full pipeline, built once and shared by every assertion."""
     return streamlit_app._build_dashboard_data()
 
@@ -207,12 +204,16 @@ def test_quarterly_dashboard_data_uses_multi_month_windows():
     assert data.finance_metric_report.current_period == "2026-06 to 2026-08"
     assert data.finance_metric_report.current_months == ("2026-06", "2026-07", "2026-08")
     assert len(data.finance_metric_report.monthly_trend) == 6
-    assert data.explanation is None, "grounded explanation is monthly-only until multi-month packets exist"
+    assert data.explanation is None, (
+        "grounded explanation is monthly-only until multi-month packets exist"
+    )
 
 
 @pytest.mark.slow
 def test_semiannual_dashboard_data_uses_multi_month_windows():
-    data = streamlit_app._build_dashboard_data(metric_name="payment_failure_rate", period_grain="semiannual")
+    data = streamlit_app._build_dashboard_data(
+        metric_name="payment_failure_rate", period_grain="semiannual"
+    )
 
     assert data.finance_metric_report.period_grain == "semiannual"
     assert data.finance_metric_report.current_period == "2026-03 to 2026-08"

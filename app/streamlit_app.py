@@ -35,26 +35,25 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from action_engine import build_action_plan  # noqa: E402
 from config import DATASET_SIZE  # noqa: E402
-from driver_analysis import build_driver_report, heatmap_matrix  # noqa: E402
+from driver_analysis import build_driver_report  # noqa: E402
 from explanation_engine import build_evidence_packet, explain  # noqa: E402
 from metric_engine import (  # noqa: E402
     METRIC_NAME as DISPUTE_RATE_METRIC,
-    PERIOD_GRAINS,
+)
+from metric_engine import (
     PERIOD_GRAIN_MONTHLY,
-    available_finance_kpis,
     aggregate_metric_trend,
+    available_finance_kpis,
     build_finance_metric_report,
     build_metric_report,
     generic_monthly_trend_table,
     metric_spec,
-    period_months_from_trend,
 )
 from quality_checks import (  # noqa: E402
     STATUS_FAIL,
@@ -66,7 +65,6 @@ from quality_checks import (  # noqa: E402
     summarize_quality_checks,
 )
 from text_theme_analysis import build_text_theme_report  # noqa: E402
-
 
 APP_TITLE = "MetricGuard AI"
 APP_SUBTITLE = "KPI investigation workspace - credit-card portfolio"
@@ -88,8 +86,8 @@ SPIKE_MONTH = "2026-08"
 # Palette. Categorical slots 1 and 2 for the two metric variants; the status four
 # for check outcomes. Charts paint their own light surface so they stay legible
 # whichever theme Streamlit is running.
-COLOR_RAW = "#eb6834"          # categorical slot 2 - the reported, inflated figure
-COLOR_CORRECTED = "#2a78d6"    # categorical slot 1 - the figure to act on
+COLOR_RAW = "#eb6834"  # categorical slot 2 - the reported, inflated figure
+COLOR_CORRECTED = "#2a78d6"  # categorical slot 1 - the figure to act on
 COLOR_DIVERGE_LOW = "#2a78d6"
 COLOR_DIVERGE_MID = "#f0efec"
 COLOR_DIVERGE_HIGH = "#e34948"
@@ -344,8 +342,7 @@ def _chart_theme(chart: alt.Chart) -> alt.Chart:
 
 def render_header(tables: dict[str, pd.DataFrame]) -> tuple[str, str, str, str | None, str | None]:
     st.markdown(
-        f'<div class="mg-head"><h1>{APP_TITLE}</h1>'
-        f'<span class="sub">{APP_SUBTITLE}</span></div>',
+        f'<div class="mg-head"><h1>{APP_TITLE}</h1><span class="sub">{APP_SUBTITLE}</span></div>',
         unsafe_allow_html=True,
     )
     dataset_label = "sample (demo)" if DATASET_SIZE == "sample" else "full"
@@ -456,7 +453,13 @@ def _metric_source_tables(data: DashboardData) -> set[str]:
 def _row_mentions_any_month(row: pd.Series, months: tuple[str, ...]) -> bool:
     haystack = " ".join(
         str(row.get(column, ""))
-        for column in ("check_name", "observed_value", "expected_value", "explanation", "recommended_action")
+        for column in (
+            "check_name",
+            "observed_value",
+            "expected_value",
+            "explanation",
+            "recommended_action",
+        )
     )
     compact_haystack = haystack.replace("-", "")
     return any(month in haystack or month.replace("-", "") in compact_haystack for month in months)
@@ -474,7 +477,9 @@ def filter_quality_report_for_selection(
         return relevant
 
     period_mask = relevant.apply(lambda row: _row_mentions_any_month(row, months), axis=1)
-    always_show = relevant["check_type"].isin(["rule", "contract"]) | relevant["status"].eq(STATUS_PASS)
+    always_show = relevant["check_type"].isin(["rule", "contract"]) | relevant["status"].eq(
+        STATUS_PASS
+    )
     return relevant[period_mask | always_show].reset_index(drop=True)
 
 
@@ -650,9 +655,7 @@ def build_trend_chart(
 
     color = alt.Color(
         "variant:N",
-        scale=alt.Scale(
-            domain=["Raw (reported)", "Corrected"], range=[COLOR_RAW, COLOR_CORRECTED]
-        ),
+        scale=alt.Scale(domain=["Raw (reported)", "Corrected"], range=[COLOR_RAW, COLOR_CORRECTED]),
         legend=alt.Legend(title=None, orient="top", direction="horizontal"),
     )
 
@@ -708,9 +711,7 @@ def build_trend_chart(
         )
     )
 
-    return _chart_theme(
-        (highlight + lines + labels).properties(height=290, padding={"right": 58})
-    )
+    return _chart_theme((highlight + lines + labels).properties(height=290, padding={"right": 58}))
 
 
 def selected_trend_frame(data: DashboardData) -> pd.DataFrame:
@@ -720,7 +721,11 @@ def selected_trend_frame(data: DashboardData) -> pd.DataFrame:
     selected = trend[trend["month"].isin([report.previous_period, report.current_period])].copy()
     order = {report.previous_period: 0, report.current_period: 1}
     selected["_selected_order"] = selected["month"].map(order)
-    return selected.sort_values("_selected_order").drop(columns="_selected_order").reset_index(drop=True)
+    return (
+        selected.sort_values("_selected_order")
+        .drop(columns="_selected_order")
+        .reset_index(drop=True)
+    )
 
 
 def render_trend(data: DashboardData) -> None:
@@ -813,7 +818,7 @@ def render_data_quality(data: DashboardData) -> None:
         )
         st.markdown(
             f'<div class="mg-note">{row["observed_value"]}<br/>'
-            f'<em>{row["recommended_action"]}</em></div>',
+            f"<em>{row['recommended_action']}</em></div>",
             unsafe_allow_html=True,
         )
         st.write("")
@@ -1068,9 +1073,7 @@ def render_drivers(data: DashboardData) -> None:
                 ),
                 width="stretch",
                 hide_index=True,
-                column_config={
-                    "Rate change (pp)": st.column_config.NumberColumn(format="percent")
-                },
+                column_config={"Rate change (pp)": st.column_config.NumberColumn(format="percent")},
             )
             st.caption(
                 "Each row is one merchant-category by channel combination, ranked by the corrected "
@@ -1132,9 +1135,7 @@ def render_themes(data: DashboardData) -> None:
     )
 
     st.markdown("##### Themes inside the driver segments")
-    focus = report.segment_themes[
-        report.segment_themes["segment_value"].isin(["travel", "mobile"])
-    ]
+    focus = report.segment_themes[report.segment_themes["segment_value"].isin(["travel", "mobile"])]
     st.dataframe(
         focus[
             [
@@ -1208,7 +1209,14 @@ def render_evidence(data: DashboardData) -> None:
 
     columns = [
         column
-        for column in ("theme_name", "rank", "similarity", "merchant_category", "channel", "narrative")
+        for column in (
+            "theme_name",
+            "rank",
+            "similarity",
+            "merchant_category",
+            "channel",
+            "narrative",
+        )
         if column in examples.columns
     ]
     st.dataframe(
@@ -1313,7 +1321,9 @@ def render_action_plan(data: DashboardData) -> None:
     with right:
         st.markdown("##### Scenario impact")
         if report.scenario_analysis.empty:
-            st.info("No scenario is shown because the selected window has no material avoidable-event estimate.")
+            st.info(
+                "No scenario is shown because the selected window has no material avoidable-event estimate."
+            )
         else:
             scenarios = report.scenario_analysis.rename(
                 columns={
@@ -1386,7 +1396,9 @@ def render_explanation(data: DashboardData) -> None:
         st.write(report.metric_definition.get("business_definition", "No definition available."))
         st.markdown("##### Recommended next steps")
         st.markdown("1. Review the top corrected segment drivers for business concentration.")
-        st.markdown("2. Check whether any failed data-quality rule touches this KPI's source table.")
+        st.markdown(
+            "2. Check whether any failed data-quality rule touches this KPI's source table."
+        )
         st.markdown("3. Escalate only the corrected KPI movement, not the raw movement.")
         st.download_button(
             "Download manager summary (.md)",
