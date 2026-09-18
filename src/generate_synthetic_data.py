@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from config import FULL_DATA_DIR, SAMPLE_DATA_DIR
+from config import DOCS_DIR, FULL_DATA_DIR, SAMPLE_DATA_DIR
 
 SEED = 461
 N_ACCOUNTS = 12_000
@@ -1079,7 +1079,11 @@ def write_ground_truth(
         "",
         markdown_table(probe_table),
     ]
-    (OUTPUT_DIR / "GROUND_TRUTH.md").write_text("\n".join(text), encoding="utf-8")
+    # Lives in docs/ (amendment A12/CC5), not with the full-size data itself,
+    # even though it's only written on the --size full path: it's project
+    # documentation about the planted defects, not data that scales with size.
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    (DOCS_DIR / "ground_truth.md").write_text("\n".join(text), encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> None:
