@@ -16,11 +16,9 @@ streamlit==1.64.0
 scikit-learn==1.9.1
 pytest==9.1.1
 pyarrow==25.0.1  # Parquet read/write for the demo-size dataset (data/sample/, amendment A10)
+duckdb==1.5.5  # SQL layer (sql/, src/sql_engine.py) — deduplicated views, monthly/segment KPIs
+matplotlib==3.11.2  # reports/figures/*.png generation (src/generate_figures.py)
 
-# Not pinned here (both are fully optional and gracefully degrade without
-# them — see src/text_theme_analysis.py and src/explanation_engine.py):
-#   sentence-transformers  — real embedding backend; hashing fallback is
-#                             used in CI/tests to avoid a model download.
-#   openai                 — only used when OPENAI_API_KEY is set; the
-#                             deterministic fallback needs no API key.
-# Install either manually if you want to exercise those paths locally.
+# sentence-transformers and openai are optional — see requirements-optional.txt.
+# Both gracefully degrade without being installed at all (hashing embeddings,
+# deterministic explanations), so they are not pinned here (amendment A12).
