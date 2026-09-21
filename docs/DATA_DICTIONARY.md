@@ -1,6 +1,6 @@
 # Synthetic Data Dictionary
 
-The project will use synthetic data. The data should be realistic enough to support a Capital One-style Senior Data Analyst project, but it must not contain real customer data.
+The project will use synthetic data. The data should be realistic enough to support a fictional-card-issuer-style Senior Data Analyst project, but it must not contain real customer data.
 
 ## Dataset Design
 
@@ -227,7 +227,7 @@ delinquency_rate_30dpd = accounts_with_days_past_due_30plus / active_accounts
 
 Note:
 
-Public Capital One disclosures use balance-based delinquency rates. The project should use the balance-based version in the main demo and keep the account-count version only as an explanatory backup.
+Public a fictional card issuer disclosures use balance-based delinquency rates. The project should use the balance-based version in the main demo and keep the account-count version only as an explanatory backup.
 
 ### purchase_volume
 

@@ -14,7 +14,7 @@ Built MetricGuard AI, a Streamlit-based financial analytics dashboard that detec
 
 ## Resume Bullets
 
-- Built an end-to-end KPI investigation dashboard for a Capital One-style credit-card portfolio, combining data-quality checks, raw vs corrected metric calculation, anomaly detection, segment driver analysis, NLP complaint themes, and action prioritization.
+- Built an end-to-end KPI investigation dashboard for a fictional-card-issuer-style credit-card portfolio, combining data-quality checks, raw vs corrected metric calculation, anomaly detection, segment driver analysis, NLP complaint themes, and action prioritization.
 - Developed deterministic pandas modules for seven Finance Risk KPIs, including dispute rate, fraud claim rate, payment failure rate, delinquency proxy, charge-off proxy, complaint rate, and fee-related complaint share.
 - Detected and quantified a synthetic source-system replay issue that inflated August dispute rate from a corrected 1.61% to a reported 1.77%, removing 165 duplicate disputed purchase rows.
 - Implemented corrected driver analysis showing `merchant_category = travel` contributed 317 additional disputed purchases and `travel x mobile` was the strongest interaction cell.
@@ -78,9 +78,9 @@ MetricGuard AI is a portfolio project focused on financial-services KPI trust. I
 
 ## Interview Talking Points
 
-### Why This Fits A Capital One Senior Data Analyst Role
+### Why This Fits A a fictional card issuer's Senior Data Analyst Role
 
-This project maps well to Senior Data Analyst work because it combines metric ownership, dashboard reliability, data quality, business interpretation, and communication. Capital One-style analytics work often requires analysts to define KPIs, monitor trends, investigate anomalies, partner with business teams, and explain findings clearly.
+This project maps well to Senior Data Analyst work because it combines metric ownership, dashboard reliability, data quality, business interpretation, and communication. fictional-card-issuer-style analytics work often requires analysts to define KPIs, monitor trends, investigate anomalies, partner with business teams, and explain findings clearly.
 
 ### Why Not Just Use A Black-Box ML Model?
 
@@ -138,7 +138,7 @@ The tool showed that the raw August dispute rate increased 32.8%, but the correc
 ```text
 Read README.md, PROJECT_SPEC.md, TECHNIQUE_LOG.md, DATA_DICTIONARY.md, and docs/PORTFOLIO_STORY.md.
 
-Review MetricGuard AI from a portfolio/interview perspective. Check whether the README and portfolio story accurately describe the codebase and avoid overclaiming. Focus on Capital One Senior Data Analyst relevance, clarity of technical explanation, whether the action-prioritization module sounds realistic for regulated financial analytics, and whether any resume bullet should be softened or strengthened.
+Review MetricGuard AI from a portfolio/interview perspective. Check whether the README and portfolio story accurately describe the codebase and avoid overclaiming. Focus on a fictional card issuer's Senior Data Analyst relevance, clarity of technical explanation, whether the action-prioritization module sounds realistic for regulated financial analytics, and whether any resume bullet should be softened or strengthened.
 
 Do not rewrite the whole project. Suggest concise edits only, and flag any claim that is not supported by the implemented code or synthetic data.
 ```

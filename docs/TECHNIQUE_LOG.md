@@ -11,7 +11,7 @@ Every technique must answer:
 - What input does it use?
 - What output does it produce?
 - How could it fail?
-- How does it connect to Capital One SDA work?
+- How does it connect to a fictional card issuer's Senior Data Analyst work?
 
 ## Planned Techniques
 
@@ -41,9 +41,9 @@ Output:
 - list of failed checks
 - affected rows or segments
 
-Capital One SDA connection:
+Target-role connection:
 
-> Capital One postings explicitly emphasize data quality management, metadata, lineage, business definitions, and tools to monitor/report data quality.
+> Target-role postings explicitly emphasize data quality management, metadata, lineage, business definitions, and tools to monitor/report data quality.
 
 Implemented in:
 
@@ -83,7 +83,7 @@ Output:
 - absolute and percent change
 - denominator context
 
-Capital One SDA connection:
+Target-role connection:
 
 > Matches BI and dashboard ownership work: designing tools, techniques, metrics, and dashboards for business insights.
 
@@ -243,7 +243,7 @@ Important design decisions:
 - small-denominator segments are flagged because rates on tiny groups are noisy
 - the decision tree is shallow and used for segmentation, not black-box prediction
 
-Capital One SDA connection:
+Target-role connection:
 
 > Useful for risk/product analytics because it turns a dashboard movement into an action-oriented explanation.
 
@@ -343,7 +343,7 @@ Course connection:
 
 > Uses text preprocessing, embeddings, semantic similarity, clustering, and grounded text evidence. TF-IDF or class-based keyword scoring can still be used to produce readable labels, but embeddings are the main representation.
 
-Capital One SDA connection:
+Target-role connection:
 
 > Matches work with unstructured data and customer-risk/product insights.
 
@@ -458,7 +458,7 @@ Guardrails to implement:
 - explicit wording that findings are analytical signals, not causal proof
 - no financial advice, credit policy recommendation, or customer-level decisioning
 
-Capital One SDA connection:
+Target-role connection:
 
 > Shows AI-enabled insight generation while preserving data governance and metric trust.
 
@@ -528,7 +528,7 @@ Failure modes:
 - showing LLM prose without validation can weaken trust
 - evidence rows can distract if they contradict structured fields
 
-Capital One SDA connection:
+Target-role connection:
 
 > This turns the project into a self-service analytics tool: KPI monitoring, dashboard reliability, data quality, driver analysis, customer text insight, and manager communication in one workflow.
 
@@ -573,7 +573,7 @@ Important boundary:
 
 > The metric, quality, trend, and driver layers now work across all active Finance Risk KPIs and across monthly, rolling-quarter, and rolling-six-month views. Because the synthetic data currently covers January through August 2026, quarter and six-month views use rolling windows rather than fixed calendar periods. The complaint-theme and validated LLM explanation layer remains tied to monthly `dispute_rate`, because that path has the strongest grounded text evidence. For the other KPIs and wider windows, the app shows a deterministic computed summary instead of pretending the dispute-specific NLP evidence applies.
 
-Capital One SDA connection:
+Target-role connection:
 
 > This demonstrates dashboard ownership, metric governance, data-quality remediation, self-service period comparison, and reusable KPI analytics. The strongest interview point is that the tool separates a general metric platform from a deeper KPI-specific investigation workflow.
 
@@ -623,7 +623,7 @@ Outputs:
 - confidence scorecard
 - methodology notes
 
-Capital One SDA connection:
+Target-role connection:
 
 > This moves the project from reporting into decision support. A Senior Data Analyst can explain not only what happened to a KPI, but also which action is worth taking, how much benefit it might create, what evidence supports it, and what governance guardrail prevents misuse.
 

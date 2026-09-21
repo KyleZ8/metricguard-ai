@@ -1,6 +1,6 @@
 # MetricGuard AI Workflow
 
-Primary target: Capital One Senior Data Analyst.
+Primary target: a fictional card issuer's Senior Data Analyst.
 
 Secondary target: data analyst, product analyst, and growth analyst roles at finance and technology companies.
 
@@ -56,7 +56,7 @@ Use Codex as the lead project partner.
 Codex should own:
 
 - project strategy
-- Capital One SDA positioning
+- a fictional card issuer's Senior Data Analyst positioning
 - research synthesis
 - KPI selection and definitions
 - architecture decisions
@@ -125,7 +125,7 @@ For each technique, document:
 - what input it uses
 - what output it produces
 - how it could fail
-- how it connects to Capital One SDA work
+- how it connects to a fictional card issuer's Senior Data Analyst work
 
 Examples:
 
@@ -137,7 +137,7 @@ Examples:
 - topic clustering
 - LLM explanation with evidence grounding
 
-## Capital One SDA Priority
+## Target-Role Priority
 
 Prioritize problems that match analytics work in financial services:
 
@@ -156,7 +156,7 @@ The demo should feel like a tool for an analyst supporting risk, card, payments,
 
 Build the app around a flexible metric-investigation engine.
 
-Capital One finance demo KPIs can include:
+Fictional-card-issuer finance demo KPIs can include:
 
 - dispute rate
 - fraud claim rate
@@ -190,7 +190,7 @@ metric movement -> data quality check -> anomaly detection -> driver analysis ->
 
 ## Development Process
 
-1. Research authentic Capital One-relevant KPIs.
+1. Research authentic, fictional-card-issuer-relevant KPIs.
 2. Lock the project spec.
 3. Design synthetic datasets.
 4. Build the deterministic analysis engine.

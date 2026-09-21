@@ -1,6 +1,6 @@
 """MetricGuard AI - dispute-rate investigation dashboard.
 
-An internal analytics tool, not a landing page. It walks a Capital One-style
+An internal analytics tool, not a landing page. It walks a fictional-card-issuer-style
 analyst through one question in the order the question is actually answered:
 
     is the KPI alert real? -> can the data be trusted? -> what moved? ->

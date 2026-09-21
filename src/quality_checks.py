@@ -22,7 +22,7 @@ Three families of checks are implemented:
 
 ``governance``
     Metric-definition completeness, supporting the metadata / business-definition
-    story in ``PROJECT_SPEC.md``.
+    story in ``docs/design_notes.md``.
 
 Every check returns one row of :data:`RESULT_COLUMNS`. Two column conventions are
 worth stating explicitly:

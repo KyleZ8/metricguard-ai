@@ -1,0 +1,21 @@
+# Optional dependencies — not installed by `make setup`, not required to run
+# the pipeline, the app, or the test suite. Both gracefully degrade without
+# being installed (see requirements.txt and CLAUDE.md's Data and security
+# standards), so install either only if you want to exercise that specific
+# path locally:
+#
+#   pip install -r requirements-optional.txt
+
+# Real embedding backend for src/text_theme_analysis.py's complaint-theme
+# classification. The hashing fallback (HashingEmbedder) is the default and
+# is what tests/CI use — never a network call. This one is opt-in even when
+# installed: it only runs when METRICGUARD_USE_SENTENCE_TRANSFORMERS=1 is
+# set (amendment A12), and even then loads from the local model cache only,
+# never downloading (see SentenceTransformerEmbedder's HF_HUB_OFFLINE guard).
+sentence-transformers==6.1.0
+
+# Real LLM explanation backend for src/explanation_engine.py. Only used when
+# OPENAI_API_KEY is set in the environment; the deterministic fallback
+# (build_deterministic_explanation) needs no API key and is what the app
+# uses by default.
+openai==3.16.0

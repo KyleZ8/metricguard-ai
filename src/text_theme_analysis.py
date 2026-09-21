@@ -31,9 +31,14 @@ Three, resolved in this order by :func:`resolve_embedder`:
 
 1. an embedder the caller injects (a callable or a precomputed matrix) -- this is
    what the tests use, so they never touch the network;
-2. :class:`SentenceTransformerEmbedder`, the primary path;
-3. :class:`HashingEmbedder`, a dependency-free deterministic fallback so the
-   module still runs where no model is cached.
+2. :class:`SentenceTransformerEmbedder` -- **opt-in only**, and never downloads
+   (amendment A12). Tried only when ``METRICGUARD_USE_SENTENCE_TRANSFORMERS=1``
+   is set, and even then loads from the local model cache only
+   (``HF_HUB_OFFLINE``/``TRANSFORMERS_OFFLINE`` forced on); a cache miss falls
+   through to the hashing backend rather than reaching the network;
+3. :class:`HashingEmbedder`, a dependency-free deterministic fallback and
+   **the default** -- the module runs this way with no extra setup, no model
+   download, and no ``sentence-transformers`` install required.
 
 Which backend produced a given report is always recorded on the report itself.
 Silently swapping representations would make two months of theme trends
@@ -51,6 +56,7 @@ Run directly to print the full report::
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -81,6 +87,11 @@ except ImportError:  # pragma: no cover - exercised only where the package is ab
 
 
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
+
+# Amendment A12: the sentence-transformer path is opt-in (never tried by
+# default) and never downloads a model even when opted in -- it only loads
+# from whatever is already in the local cache.
+USE_SENTENCE_TRANSFORMERS_ENV_VAR = "METRICGUARD_USE_SENTENCE_TRANSFORMERS"
 
 UNCLEAR_THEME = "unclear_or_other"
 
@@ -276,15 +287,26 @@ class HashingEmbedder:
 
 
 class SentenceTransformerEmbedder:
-    """The primary backend: a sentence-transformers model.
+    """The primary backend: a sentence-transformers model, local files only.
 
-    Loading is attempted from the local model cache first, so an already-cached
-    model works with no network access.
+    Opt-in only (amendment A12): raises unless ``METRICGUARD_USE_SENTENCE_TRANSFORMERS=1``
+    is set, so it is never tried by accident. Even then it never downloads --
+    ``HF_HUB_OFFLINE``/``TRANSFORMERS_OFFLINE`` are forced on before the model
+    loads, so a cache miss raises ``OSError`` instead of reaching the network,
+    and the caller (``resolve_embedder``) falls back to hashing.
     """
 
     def __init__(self, model_name: str = DEFAULT_MODEL_NAME) -> None:
         if not SENTENCE_TRANSFORMERS_AVAILABLE:
             raise ImportError("sentence_transformers is not installed")
+        if os.environ.get(USE_SENTENCE_TRANSFORMERS_ENV_VAR) != "1":
+            raise RuntimeError(
+                f"{USE_SENTENCE_TRANSFORMERS_ENV_VAR}=1 is required to use "
+                "SentenceTransformerEmbedder (opt-in; the hashing fallback is "
+                "the default, per amendment A12)."
+            )
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
         self.model_name = model_name
         self.name = f"sentence_transformer:{model_name}"
         self._model = SentenceTransformer(model_name)
@@ -319,11 +341,11 @@ def resolve_embedder(embedder: Embedder | None = None) -> tuple[Embedder, str]:
         name = getattr(embedder, "name", None) or getattr(type(embedder), "__name__", "injected")
         return embedder, str(name)
 
-    if SENTENCE_TRANSFORMERS_AVAILABLE:
+    if SENTENCE_TRANSFORMERS_AVAILABLE and os.environ.get(USE_SENTENCE_TRANSFORMERS_ENV_VAR) == "1":
         try:
             backend = SentenceTransformerEmbedder()
             return backend, backend.name
-        except Exception:  # noqa: BLE001 - any load failure falls back deliberately
+        except Exception:  # noqa: BLE001 - any load failure (including cache miss) falls back deliberately
             pass
 
     fallback = HashingEmbedder()

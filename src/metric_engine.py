@@ -232,14 +232,16 @@ FINANCE_METRIC_SPECS: dict[str, FinanceMetricSpec] = {
     "complaint_rate": FinanceMetricSpec(
         metric_name="complaint_rate",
         display_name="Complaint rate",
-        business_definition="Customer complaints per active account.",
+        business_definition="Customer complaints per 1,000 active accounts (amendment A4).",
         numerator_label="complaints",
-        denominator_label="active accounts",
+        denominator_label="active accounts (x1,000)",
         metric_family="complaint_volume",
         higher_is_bad=True,
+        # Account-level segment fields only (A4): a complaint has no
+        # independent "population" for a complaint-only attribute like
+        # issue/submitted_via, so complaint_rate is not computed for those --
+        # see generic_segment_driver_table's complaint_rate branch.
         segment_fields=(
-            "issue",
-            "submitted_via",
             "product_type",
             "customer_segment",
             "fico_band",
@@ -254,8 +256,10 @@ FINANCE_METRIC_SPECS: dict[str, FinanceMetricSpec] = {
         denominator_label="complaints",
         metric_family="complaint_share",
         higher_is_bad=True,
+        # "issue" excluded (A11): every complaint in the issue="Fees or
+        # interest" group is definitionally a fee complaint, so that one cut
+        # is tautological (1.0 for that value, 0.0 for every other issue).
         segment_fields=(
-            "issue",
             "submitted_via",
             "product_type",
             "customer_segment",
@@ -577,7 +581,10 @@ def _complaint_monthly_trend(
         .agg(denominator=("account_id", "nunique"))
     )
     grouped = comp_count.join(active, how="outer").fillna(0).reset_index(names="month")
-    grouped["metric_value"] = _safe_rate(grouped["numerator"], grouped["denominator"])
+    # Per 1,000 active accounts (amendment A4), not a raw complaints/accounts
+    # fraction -- complaint counts are small relative to the account base, so
+    # an unscaled rate reads as a string of zeros.
+    grouped["metric_value"] = _safe_rate(grouped["numerator"], grouped["denominator"]) * 1000
     return grouped[["month", "numerator", "denominator", "metric_value"]]
 
 
@@ -806,30 +813,15 @@ def generic_segment_driver_table(
     resolved_current, resolved_previous = resolve_periods(trend, current_period, previous_period)
     current_months = period_months_from_trend(trend, resolved_current)
     previous_months = period_months_from_trend(trend, resolved_previous)
-    source, numerator, denominator = _metric_source(tables, spec, corrected=True)
-    period_source = pd.concat(
-        [
-            source[source["month"].isin(previous_months)].assign(_metric_period=resolved_previous),
-            source[source["month"].isin(current_months)].assign(_metric_period=resolved_current),
-        ],
-        ignore_index=True,
-    )
-    frames: list[pd.DataFrame] = []
-    for field in spec.segment_fields:
-        if field not in period_source.columns:
-            continue
-        grouped = _generic_group(
-            period_source,
-            [field, "_metric_period"],
-            numerator,
-            denominator,
-        )
+
+    def _finish(grouped: pd.DataFrame, field: str, value_scale: float = 1.0) -> pd.DataFrame | None:
+        """[field, _metric_period, numerator, denominator] -> the standard output columns."""
         if grouped.empty:
-            continue
-        pivot = grouped.set_index([field, "_metric_period"])[
-            ["numerator", "denominator", "metric_value"]
-        ].unstack("_metric_period")
-        for measure in ("numerator", "denominator", "metric_value"):
+            return None
+        pivot = grouped.set_index([field, "_metric_period"])[["numerator", "denominator"]].unstack(
+            "_metric_period"
+        )
+        for measure in ("numerator", "denominator"):
             for period in (resolved_previous, resolved_current):
                 if (measure, period) not in pivot.columns:
                     pivot[(measure, period)] = 0.0
@@ -846,8 +838,12 @@ def generic_segment_driver_table(
         out["segment_name"] = field
         out["numerator_change"] = out["current_numerator"] - out["previous_numerator"]
         out["denominator_change"] = out["current_denominator"] - out["previous_denominator"]
-        out["previous_value"] = _safe_rate(out["previous_numerator"], out["previous_denominator"])
-        out["current_value"] = _safe_rate(out["current_numerator"], out["current_denominator"])
+        out["previous_value"] = (
+            _safe_rate(out["previous_numerator"], out["previous_denominator"]) * value_scale
+        )
+        out["current_value"] = (
+            _safe_rate(out["current_numerator"], out["current_denominator"]) * value_scale
+        )
         out["absolute_change"] = out["current_value"] - out["previous_value"]
         out["percent_change"] = out.apply(
             lambda row: _safe_scalar_rate(row["absolute_change"], row["previous_value"]),
@@ -862,7 +858,97 @@ def generic_segment_driver_table(
         out["min_denominator_flag"] = (
             out[["previous_denominator", "current_denominator"]].min(axis=1) < min_denominator
         )
-        frames.append(out)
+        return out
+
+    frames: list[pd.DataFrame] = []
+    if spec.metric_name == "complaint_rate":
+        # complaint_rate's denominator is active accounts, not complaints
+        # (amendment A4), so it cannot come from the same source frame as the
+        # numerator the way every other KPI's does. Build each side from its
+        # own table, keyed by segment value and period, then join them.
+        complaints = tables[TABLE_COMPLAINTS].copy()
+        complaints["month"] = _month_key(complaints, "date_received")
+        snapshots = tables[TABLE_SNAPSHOTS].copy()
+        snapshots["month"] = snapshots["snapshot_month"].astype(str)
+        active_accounts = snapshots[snapshots["active_flag"].eq(1)].copy()
+        accounts = tables.get(TABLE_ACCOUNTS)
+        if accounts is not None:
+            # complaints already carries customer_segment/fico_band natively
+            # (copied at generation time); only join fields it's missing, to
+            # avoid a _x/_y suffix collision that would hide both copies.
+            complaint_join_fields = [
+                field
+                for field in spec.segment_fields
+                if field in accounts.columns and field not in complaints.columns
+            ]
+            if complaint_join_fields:
+                complaints = complaints.merge(
+                    accounts[["account_id"] + complaint_join_fields], on="account_id", how="left"
+                )
+            snapshot_join_fields = [
+                field
+                for field in spec.segment_fields
+                if field in accounts.columns and field not in active_accounts.columns
+            ]
+            if snapshot_join_fields:
+                active_accounts = active_accounts.merge(
+                    accounts[["account_id"] + snapshot_join_fields], on="account_id", how="left"
+                )
+        period_complaints = pd.concat(
+            [
+                complaints[complaints["month"].isin(previous_months)].assign(
+                    _metric_period=resolved_previous
+                ),
+                complaints[complaints["month"].isin(current_months)].assign(
+                    _metric_period=resolved_current
+                ),
+            ],
+            ignore_index=True,
+        )
+        period_accounts = pd.concat(
+            [
+                active_accounts[active_accounts["month"].isin(previous_months)].assign(
+                    _metric_period=resolved_previous
+                ),
+                active_accounts[active_accounts["month"].isin(current_months)].assign(
+                    _metric_period=resolved_current
+                ),
+            ],
+            ignore_index=True,
+        )
+        for field in spec.segment_fields:
+            if field not in complaints.columns or field not in period_accounts.columns:
+                continue
+            numerator_counts = (
+                period_complaints.groupby([field, "_metric_period"]).size().rename("numerator")
+            )
+            denominator_counts = (
+                period_accounts.groupby([field, "_metric_period"])["account_id"]
+                .nunique()
+                .rename("denominator")
+            )
+            grouped = (
+                pd.concat([numerator_counts, denominator_counts], axis=1).fillna(0).reset_index()
+            )
+            out = _finish(grouped, field, value_scale=1000.0)
+            if out is not None:
+                frames.append(out)
+    else:
+        source, numerator, denominator = _metric_source(tables, spec, corrected=True)
+        period_source = pd.concat(
+            [
+                source[source["month"].isin(previous_months)].assign(_metric_period=resolved_previous),
+                source[source["month"].isin(current_months)].assign(_metric_period=resolved_current),
+            ],
+            ignore_index=True,
+        )
+        for field in spec.segment_fields:
+            if field not in period_source.columns:
+                continue
+            grouped = _generic_group(period_source, [field, "_metric_period"], numerator, denominator)
+            out = _finish(grouped, field)
+            if out is not None:
+                frames.append(out)
 
     if not frames:
         return pd.DataFrame(columns=list(GENERIC_SEGMENT_DRIVER_COLUMNS))
@@ -1065,6 +1151,53 @@ def monthly_trend_table(transactions: pd.DataFrame) -> pd.DataFrame:
     )
     trend["dispute_rate_difference"] = trend["dispute_rate_raw"] - trend["dispute_rate_corrected"]
 
+    return trend[list(MONTHLY_TREND_COLUMNS)].reset_index(drop=True)
+
+
+def monthly_trend_table_sql(tables: Mapping[str, pd.DataFrame] | None = None) -> pd.DataFrame:
+    """Same shape as :func:`monthly_trend_table`, computed by the sql/ DuckDB layer (CC4).
+
+    Not the default path -- :func:`monthly_trend_table` (pandas) is what the
+    rest of the app calls -- but a real, callable integration point, proven
+    identical to it by src/verify_sql_parity.py. Exists so the SQL layer is
+    something the metric engine actually calls, not just a side script.
+    """
+    from sql_engine import build_connection, monthly_dispute_rate_sql
+
+    con = build_connection(tables)
+    try:
+        raw = monthly_dispute_rate_sql(con, deduped=False)
+        corrected = monthly_dispute_rate_sql(con, deduped=True)
+    finally:
+        con.close()
+
+    trend = raw.merge(corrected, on="month", how="outer", suffixes=("_raw", "_corrected")).sort_values(
+        "month"
+    )
+    trend = trend.rename(
+        columns={
+            "numerator_raw": "disputed_purchases_raw",
+            "denominator_raw": "purchase_transactions_raw",
+            "metric_value_raw": "dispute_rate_raw",
+            "numerator_corrected": "disputed_purchases_corrected",
+            "denominator_corrected": "purchase_transactions_corrected",
+            "metric_value_corrected": "dispute_rate_corrected",
+        }
+    )
+    for column in (
+        "disputed_purchases_raw",
+        "purchase_transactions_raw",
+        "disputed_purchases_corrected",
+        "purchase_transactions_corrected",
+    ):
+        trend[column] = trend[column].fillna(0).astype(int)
+    trend["duplicate_purchase_rows_removed"] = (
+        trend["purchase_transactions_raw"] - trend["purchase_transactions_corrected"]
+    )
+    trend["duplicate_disputed_rows_removed"] = (
+        trend["disputed_purchases_raw"] - trend["disputed_purchases_corrected"]
+    )
+    trend["dispute_rate_difference"] = trend["dispute_rate_raw"] - trend["dispute_rate_corrected"]
     return trend[list(MONTHLY_TREND_COLUMNS)].reset_index(drop=True)
 
 
