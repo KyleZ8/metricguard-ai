@@ -21,13 +21,17 @@ Run directly to print every KPI/segment view::
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import duckdb
 import pandas as pd
 
 from config import PROJECT_ROOT
-from quality_checks import TABLE_ACCOUNTS, TABLE_COMPLAINTS, TABLE_SNAPSHOTS, TABLE_TRANSACTIONS, load_tables
+from quality_checks import (
+    TABLE_ACCOUNTS,
+    TABLE_COMPLAINTS,
+    TABLE_SNAPSHOTS,
+    TABLE_TRANSACTIONS,
+    load_tables,
+)
 
 SQL_DIR = PROJECT_ROOT / "sql"
 

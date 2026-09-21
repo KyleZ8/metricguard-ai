@@ -70,6 +70,7 @@ SPIKE_MONTH = "2026-08"
 PRIOR_MONTH = "2026-07"
 
 DATA_DIR = PROJECT_ROOT / "data" / "synthetic"
+DOCS_DIR = PROJECT_ROOT / "docs"
 CSV_FILES = (
     "accounts.csv",
     "account_monthly_snapshot.csv",
@@ -1013,7 +1014,7 @@ def test_the_vague_pool_gives_unclear_or_other_a_real_population():
 
 
 def _ground_truth_text() -> str:
-    return (DATA_DIR / "GROUND_TRUTH.md").read_text(encoding="utf-8")
+    return (DOCS_DIR / "ground_truth.md").read_text(encoding="utf-8")
 
 
 def _ground_truth_probe_table() -> pd.DataFrame:
