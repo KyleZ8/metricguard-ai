@@ -39,8 +39,8 @@ Target-role postings emphasize:
 
 Sources:
 
-- a fictional card issuer's Senior Data Analyst - Analytics & Transformation: https://www.capitalonecareers.com/job/mclean/senior-data-analyst-analytics-and-transformation/1732/98634904320
-- a fictional card issuer's Senior Data Analyst - Risk Product Data: https://www.capitalonecareers.com/job/mclean/senior-data-analyst-risk-product-data/1732/98246876496
+- a fictional card issuer's Senior Data Analyst - Analytics & Transformation job posting (McLean, VA)
+- a fictional card issuer's Senior Data Analyst - Risk Product Data job posting (McLean, VA)
 
 ## Product Problem
 

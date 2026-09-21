@@ -29,8 +29,8 @@ Important phrases from current postings:
 
 Sources:
 
-- https://www.capitalonecareers.com/job/mclean/senior-data-analyst-analytics-and-transformation/1732/98634904320
-- https://www.capitalonecareers.com/job/mclean/senior-data-analyst-risk-product-data/1732/98246876496
+- a public card issuer's Senior Data Analyst - Analytics & Transformation job posting (McLean, VA)
+- a public card issuer's Senior Data Analyst - Risk Product Data job posting (McLean, VA)
 
 Implication for this project:
 
@@ -48,7 +48,7 @@ Definition adapted from public card-issuer SEC monthly credit metric disclosures
 
 Source:
 
-- https://www.sec.gov/Archives/edgar/data/927628/000092762825000241/ex991june2025creditmetrics.htm
+- a public card issuer's SEC monthly credit metrics disclosure (Form 8-K exhibit)
 
 Why it matters:
 
@@ -71,7 +71,7 @@ Definition adapted from public card-issuer SEC monthly credit metric disclosures
 
 Source:
 
-- https://www.sec.gov/Archives/edgar/data/927628/000092762825000241/ex991june2025creditmetrics.htm
+- a public card issuer's SEC monthly credit metrics disclosure (Form 8-K exhibit)
 
 Federal Reserve framing:
 
@@ -97,7 +97,7 @@ Public card issuers report domestic card purchase volume as a selected performan
 
 Source:
 
-- https://investor.capitalone.com/static-files/63e07fa4-c440-4f70-b5e0-e02380962c8a
+- a public card issuer's investor relations selected performance metrics filing
 
 Why it matters:
 
@@ -115,7 +115,7 @@ Public card issuers report period-end loans held for investment in segment-level
 
 Source:
 
-- https://investor.capitalone.com/static-files/63e07fa4-c440-4f70-b5e0-e02380962c8a
+- a public card issuer's investor relations selected performance metrics filing
 
 Why it matters:
 
@@ -133,7 +133,7 @@ Public card issuers use average loans held for investment as the denominator for
 
 Source:
 
-- https://investor.capitalone.com/static-files/63e07fa4-c440-4f70-b5e0-e02380962c8a
+- a public card issuer's investor relations selected performance metrics filing
 
 Project use:
 
@@ -147,7 +147,7 @@ Public card issuers report total net revenue margin in domestic card selected pe
 
 Source:
 
-- https://investor.capitalone.com/static-files/63e07fa4-c440-4f70-b5e0-e02380962c8a
+- a public card issuer's investor relations selected performance metrics filing
 
 Why it matters:
 
@@ -164,7 +164,7 @@ Public card issuers report refreshed FICO score mix for domestic card, including
 
 Source:
 
-- https://investor.capitalone.com/static-files/63e07fa4-c440-4f70-b5e0-e02380962c8a
+- a public card issuer's investor relations selected performance metrics filing
 
 Why it matters:
 
