@@ -3,7 +3,7 @@
 **KPI monitoring and root-cause analytics for a credit card portfolio.**
 Validate the data → measure what really moved → explain why → recommend what to do.
 
-![CI](https://github.com/USERNAME/metricguard-ai/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/KyleZ8/metricguard-ai/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
