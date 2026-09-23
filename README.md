@@ -158,3 +158,5 @@ Optional and opt-in: sentence-transformers (local cache only), OpenAI API.
 ## License
 
 MIT
+
+Part of a six-project data analytics portfolio — see [github.com/KyleZ8](https://github.com/KyleZ8)
